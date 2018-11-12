@@ -1,7 +1,7 @@
 """
-ExcaliburFrameProducer - load EXCALIBUR frames from packet capture file and send via UDP.
+QEMIIFrameProducer - load QEM-II frames from packet capture file and send via UDP.
 
-Tim Nicholls, STFC Application Engineering Group.
+Sophie Kirkham, STFC Application Engineering Group.
 """
 
 import struct
