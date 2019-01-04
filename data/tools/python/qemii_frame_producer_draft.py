@@ -1,6 +1,7 @@
 import dpkt
 import struct
 import socket
+import random
 import os
 from dpkt.compat import compat_ord
 import logging
@@ -9,7 +10,6 @@ import argparse
 
 QEM_SOF = 128 << 24
 QEM_EOF = (64 << 24) + 7
-
 
 class QEMFrame():
 
@@ -42,10 +42,20 @@ class QEMFrameProducerDefaults():
         self.num_frames = 0
         self.tx_interval = 0
         self.drop_list = None
+        self.drop_frac = 0
         self.log_level = logging.INFO
-
         self.pcap_file = "/scratch/qem/data.pcap"
 
+
+def min_max(value):
+
+    fvalue = float(value)
+    if (0.0 <= fvalue <= 1.0):
+        pass
+    else:
+        raise argparse.ArgumentTypeError("%s is an invalid value, values can be 0.0 - 1.0" % value)
+    return fvalue
+    
 class QEMFrameProducer():
 
 
@@ -82,18 +92,13 @@ class QEMFrameProducer():
             default=self.defaults.tx_interval, metavar='INTERVAL',
             help='Interval in seconds between transmission of frames'
         )
-        """
+     
         parser.add_argument(
-            '--pkt_gap', type=int, dest='pkt_gap', metavar='PACKETS',
-            help='Insert brief pause between every N packets'
-        )
-        parser.add_argument(
-            '--drop_frac', type=float, dest='drop_frac',
-            min=0.0, max=1.0,
+            '--drop_frac', type=min_max, dest='drop_frac',
             default=self.defaults.drop_frac, metavar='FRACTION',
             help='Fraction of packets to drop'
         )
-        """
+      
         parser.add_argument(
             '--drop_list', type=int, nargs='+', dest='drop_list',
             default=self.defaults.drop_list,
@@ -112,7 +117,6 @@ class QEMFrameProducer():
             datefmt='%y%m%d %H:%M:%S'
         )
 
-        #self.pcap_file = self.args.pcap_file
         self.pcap = dpkt.pcap.Reader(self.args.pcap_file)
 
     def run(self):
@@ -121,8 +125,6 @@ class QEMFrameProducer():
         self.send_packets()
 
     def load_pcap(self):
-
-        #f = open(self.pcap_file)
 
         logging.info(
             "Extracting QEM frame packets from PCAP file %s",
@@ -165,10 +167,9 @@ class QEMFrameProducer():
 
                 current_frame = QEMFrame(frame_number)
                 frame_number +=1
-                #current_frame.append_packet(udp_packet)
+          
 
             if packet_number == QEMFrame.QEM_EOF:
-                #current_frame.append_packet(udp_packet)
                 self.frames.append(current_frame)
          
             current_frame.append_packet(udp_packet)
@@ -211,6 +212,13 @@ class QEMFrameProducer():
 
             for packet_id, packet in enumerate(current_frame.packets):
                 
+                
+                # If a drop fraction option was specified, decide if the packet should be dropped
+                if self.args.drop_frac > 0.0:
+                    if random.uniform(0.0, 1.0) < self.args.drop_frac:
+                        frame_pkts_dropped += 1
+                        continue
+
                 if self.args.drop_list is not None: 
                     if packet_id in self.args.drop_list:
                         frame_pkts_dropped += 1
@@ -229,7 +237,6 @@ class QEMFrameProducer():
             total_frames_sent += 1
             total_packets_dropped += frame_pkts_dropped
 
-            #WAIT TIME
             end_time = time.time()
             wait_time = (start_time + self.args.tx_interval) - end_time
             if wait_time > 0:
