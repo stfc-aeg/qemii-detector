@@ -1,25 +1,25 @@
 /*
- * ExcaliburProcessPlugin.cpp
+ * QEMIIProcessPlugin.cpp
  *
  *  Created on: 6 Jun 2016
  *      Author: gnx91527
  */
 
-#include <ExcaliburProcessPlugin.h>
+#include <QemiiProcessPlugin.h>
 #include "version.h"
 namespace FrameProcessor
 {
 
-  const std::string ExcaliburProcessPlugin::CONFIG_DROPPED_PACKETS = "packets_lost";
-  const std::string ExcaliburProcessPlugin::CONFIG_ASIC_COUNTER_DEPTH = "bitdepth";
-  const std::string ExcaliburProcessPlugin::CONFIG_IMAGE_WIDTH = "width";
-  const std::string ExcaliburProcessPlugin::CONFIG_IMAGE_HEIGHT = "height";
-  const std::string ExcaliburProcessPlugin::BIT_DEPTH[4] = {"1-bit", "6-bit", "12-bit", "24-bit"};
+  const std::string QEMIIProcessPlugin::CONFIG_DROPPED_PACKETS = "packets_lost";
+  const std::string QEMIIProcessPlugin::CONFIG_ASIC_COUNTER_DEPTH = "bitdepth";
+  const std::string QEMIIProcessPlugin::CONFIG_IMAGE_WIDTH = "width";
+  const std::string QEMIIProcessPlugin::CONFIG_IMAGE_HEIGHT = "height";
+  const std::string QEMIIProcessPlugin::BIT_DEPTH[4] = {"1-bit", "6-bit", "12-bit", "24-bit"};
 
   /**
    * The constructor sets up logging used within the class.
    */
-  ExcaliburProcessPlugin::ExcaliburProcessPlugin() :
+  QEMIIProcessPlugin::QEMIIProcessPlugin() :
       asic_counter_depth_(DEPTH_12_BIT),
       image_width_(2048),
       image_height_(256),
@@ -27,17 +27,17 @@ namespace FrameProcessor
       packets_lost_(0)
   {
     // Setup logging for the class
-    logger_ = Logger::getLogger("FP.ExcaliburProcessPlugin");
+    logger_ = Logger::getLogger("FP.QEMIIProcessPlugin");
     logger_->setLevel(Level::getAll());
-    LOG4CXX_INFO(logger_, "ExcaliburProcessPlugin version " << this->get_version_long() << " loaded");
+    LOG4CXX_INFO(logger_, "QEMIIProcessPlugin version " << this->get_version_long() << " loaded");
   }
 
   /**
    * Destructor.
    */
-  ExcaliburProcessPlugin::~ExcaliburProcessPlugin()
+  QEMIIProcessPlugin::~QEMIIProcessPlugin()
   {
-    LOG4CXX_TRACE(logger_, "ExcaliburProcessPlugin destructor.");
+    LOG4CXX_TRACE(logger_, "QEMIIProcessPlugin destructor.");
   }
 
   /**
@@ -45,7 +45,7 @@ namespace FrameProcessor
    * 
    * \return major version number as an integer
    */ 
-  int ExcaliburProcessPlugin::get_version_major()
+  int QEMIIProcessPlugin::get_version_major()
   {
     return ODIN_DATA_VERSION_MAJOR;
   }
@@ -55,7 +55,7 @@ namespace FrameProcessor
    * 
    * \return minor version number as an integer
    */ 
-  int ExcaliburProcessPlugin::get_version_minor()
+  int QEMIIProcessPlugin::get_version_minor()
   {
     return ODIN_DATA_VERSION_MINOR;
   }
@@ -65,7 +65,7 @@ namespace FrameProcessor
    * 
    * \return patch version number as an integer
    */ 
-  int ExcaliburProcessPlugin::get_version_patch()
+  int QEMIIProcessPlugin::get_version_patch()
   {
     return ODIN_DATA_VERSION_PATCH;
   }
@@ -75,7 +75,7 @@ namespace FrameProcessor
    * 
    * \return short version as a string
    */ 
-  std::string ExcaliburProcessPlugin::get_version_short()
+  std::string QEMIIProcessPlugin::get_version_short()
   {
     return ODIN_DATA_VERSION_STR_SHORT;
   }
@@ -85,13 +85,13 @@ namespace FrameProcessor
    * 
    * \return long version as a string
    */ 
-  std::string ExcaliburProcessPlugin::get_version_long()
+  std::string QEMIIProcessPlugin::get_version_long()
   {
     return ODIN_DATA_VERSION_STR;
   }
 
   /**
-   * Configure the Excalibur plugin.  This receives an IpcMessage which should be processed
+   * Configure the QEMII plugin.  This receives an IpcMessage which should be processed
    * to configure the plugin, and any response can be added to the reply IpcMessage.  This
    * plugin supports the following configuration parameters:
    * - bitdepth
@@ -99,17 +99,17 @@ namespace FrameProcessor
    * \param[in] config - Reference to the configuration IpcMessage object.
    * \param[out] reply - Reference to the reply IpcMessage object.
    */
-  void ExcaliburProcessPlugin::configure(OdinData::IpcMessage& config, OdinData::IpcMessage& reply)
+  void QEMIIProcessPlugin::configure(OdinData::IpcMessage& config, OdinData::IpcMessage& reply)
   {
-    if (config.has_param(ExcaliburProcessPlugin::CONFIG_DROPPED_PACKETS))
+    if (config.has_param(QEMIIProcessPlugin::CONFIG_DROPPED_PACKETS))
     {
-      packets_lost_ = config.get_param<int>(ExcaliburProcessPlugin::CONFIG_DROPPED_PACKETS);
+      packets_lost_ = config.get_param<int>(QEMIIProcessPlugin::CONFIG_DROPPED_PACKETS);
     }
 
-    if (config.has_param(ExcaliburProcessPlugin::CONFIG_ASIC_COUNTER_DEPTH))
+    if (config.has_param(QEMIIProcessPlugin::CONFIG_ASIC_COUNTER_DEPTH))
     {
       std::string bit_depth_str =
-          config.get_param<std::string>(ExcaliburProcessPlugin::CONFIG_ASIC_COUNTER_DEPTH);
+          config.get_param<std::string>(QEMIIProcessPlugin::CONFIG_ASIC_COUNTER_DEPTH);
 
       if (bit_depth_str == BIT_DEPTH[DEPTH_1_BIT])
       {
@@ -136,14 +136,14 @@ namespace FrameProcessor
       }
     }
 
-    if (config.has_param(ExcaliburProcessPlugin::CONFIG_IMAGE_WIDTH))
+    if (config.has_param(QEMIIProcessPlugin::CONFIG_IMAGE_WIDTH))
     {
-      image_width_ = config.get_param<int>(ExcaliburProcessPlugin::CONFIG_IMAGE_WIDTH);
+      image_width_ = config.get_param<int>(QEMIIProcessPlugin::CONFIG_IMAGE_WIDTH);
     }
 
-    if (config.has_param(ExcaliburProcessPlugin::CONFIG_IMAGE_HEIGHT))
+    if (config.has_param(QEMIIProcessPlugin::CONFIG_IMAGE_HEIGHT))
     {
-      image_height_ = config.get_param<int>(ExcaliburProcessPlugin::CONFIG_IMAGE_HEIGHT);
+      image_height_ = config.get_param<int>(QEMIIProcessPlugin::CONFIG_IMAGE_HEIGHT);
     }
 
     image_pixels_ = image_width_ * image_height_;
@@ -155,10 +155,10 @@ namespace FrameProcessor
    *
    * \param[out] status - Reference to an IpcMessage value to store the status.
    */
-  void ExcaliburProcessPlugin::status(OdinData::IpcMessage& status)
+  void QEMIIProcessPlugin::status(OdinData::IpcMessage& status)
   {
     // Record the plugin's status items
-    LOG4CXX_DEBUG(logger_, "Status requested for Excalibur plugin");
+    LOG4CXX_DEBUG(logger_, "Status requested for QEMII plugin");
     status.set_param(get_name() + "/bitdepth", BIT_DEPTH[asic_counter_depth_]);
     status.set_param(get_name() + "/packets_lost", packets_lost_);
   }
@@ -166,9 +166,9 @@ namespace FrameProcessor
   /**
    * Reset process plugin statistics, i.e. counter of packets lost
    */
-  bool ExcaliburProcessPlugin::reset_statistics(void)
+  bool QEMIIProcessPlugin::reset_statistics(void)
   {
-    LOG4CXX_DEBUG(logger_, "Statistics reset requested for Excalibur plugin")
+    LOG4CXX_DEBUG(logger_, "Statistics reset requested for QEMII plugin")
     
     // Reset packets lost counter
     packets_lost_ = 0;
@@ -181,16 +181,16 @@ namespace FrameProcessor
    *
    * \param[in] frame - Pointer to a Frame object.
    */
-  void ExcaliburProcessPlugin::process_lost_packets(boost::shared_ptr<Frame> frame)
+  void QEMIIProcessPlugin::process_lost_packets(boost::shared_ptr<Frame> frame)
   {
-    const Excalibur::FrameHeader* hdr_ptr = static_cast<const Excalibur::FrameHeader*>(frame->get_data());
-    Excalibur::AsicCounterBitDepth depth = static_cast<Excalibur::AsicCounterBitDepth>(asic_counter_depth_);
+    const QEMII::FrameHeader* hdr_ptr = static_cast<const QEMII::FrameHeader*>(frame->get_data());
+    QEMII::AsicCounterBitDepth depth = static_cast<QEMII::AsicCounterBitDepth>(asic_counter_depth_);
     LOG4CXX_DEBUG(logger_, "Processing lost packets for frame " << hdr_ptr->frame_number);
     LOG4CXX_DEBUG(logger_, "Packets received: " << hdr_ptr->total_packets_received
                                                 << " out of a maximum "
-                                                << Excalibur::num_fem_frame_packets(depth) * hdr_ptr->num_active_fems);
-    if (hdr_ptr->total_packets_received < (Excalibur::num_fem_frame_packets(depth) * hdr_ptr->num_active_fems)){
-      int packets_lost = (Excalibur::num_fem_frame_packets(depth) * hdr_ptr->num_active_fems) - hdr_ptr->total_packets_received;
+                                                << QEMII::num_fem_frame_packets(depth) * hdr_ptr->num_active_fems);
+    if (hdr_ptr->total_packets_received < (QEMII::num_fem_frame_packets(depth) * hdr_ptr->num_active_fems)){
+      int packets_lost = (QEMII::num_fem_frame_packets(depth) * hdr_ptr->num_active_fems) - hdr_ptr->total_packets_received;
       LOG4CXX_ERROR(logger_, "Frame number " << hdr_ptr->frame_number << " has dropped " << packets_lost << " packets");
       packets_lost_ += packets_lost;
       LOG4CXX_ERROR(logger_, "Total packets lost since startup " << packets_lost_);
@@ -203,15 +203,15 @@ namespace FrameProcessor
    *
    * \param[in] frame - Pointer to a Frame object.
    */
-  void ExcaliburProcessPlugin::process_frame(boost::shared_ptr<Frame> frame)
+  void QEMIIProcessPlugin::process_frame(boost::shared_ptr<Frame> frame)
   {
     LOG4CXX_TRACE(logger_, "Reordering frame.");
     LOG4CXX_TRACE(logger_, "Frame size: " << frame->get_data_size());
 
     this->process_lost_packets(frame);
 
-    const Excalibur::FrameHeader* hdr_ptr =
-        static_cast<const Excalibur::FrameHeader*>(frame->get_data());
+    const QEMII::FrameHeader* hdr_ptr =
+        static_cast<const QEMII::FrameHeader*>(frame->get_data());
 
     LOG4CXX_TRACE(logger_, "Raw frame number: " << hdr_ptr->frame_number);
     LOG4CXX_TRACE(logger_, "Frame state: " << hdr_ptr->frame_state);
@@ -242,7 +242,7 @@ namespace FrameProcessor
 
     // Obtain a pointer to the start of the data in the frame
     const void* data_ptr = static_cast<const void*>(
-        static_cast<const char*>(frame->get_data()) + sizeof(Excalibur::FrameHeader)
+        static_cast<const char*>(frame->get_data()) + sizeof(QEMII::FrameHeader)
     );
 
     // Pointers to reordered image buffer - will be allocated on demand
@@ -273,8 +273,8 @@ namespace FrameProcessor
       // Calculate the FEM frame size once so it can be used in the following loop
       // repeatedly
       std::size_t fem_frame_size = (
-          Excalibur::num_subframes[asic_counter_depth_] *
-          Excalibur::subframe_size(static_cast<Excalibur::AsicCounterBitDepth>(asic_counter_depth_))
+          QEMII::num_subframes[asic_counter_depth_] *
+          QEMII::subframe_size(static_cast<QEMII::AsicCounterBitDepth>(asic_counter_depth_))
       );
 
       // Loop over active FEMs in the input frame image data, reordering pixels into the output
@@ -393,7 +393,7 @@ namespace FrameProcessor
    * \param[in] asic_counter_depth
    * \return size of the reordered image in bytes
    */
-  std::size_t ExcaliburProcessPlugin::reordered_image_size(int asic_counter_depth) {
+  std::size_t QEMIIProcessPlugin::reordered_image_size(int asic_counter_depth) {
 
     std::size_t slice_size = 0;
 
@@ -435,7 +435,7 @@ namespace FrameProcessor
    * \param[out] out - Pointer to the allocated memory where the reordered image is written.
    * \param[in] stripe_is_even - boolean indicating if stripe has even orientation
    */
-  void ExcaliburProcessPlugin::reorder_1bit_stripe(unsigned int* in, unsigned char* out,
+  void QEMIIProcessPlugin::reorder_1bit_stripe(unsigned int* in, unsigned char* out,
       bool stripe_is_even)
   {
     int block, y, x, x2, chip, pixel_x, pixel_y, pixel_addr, bit_posn;
@@ -489,7 +489,7 @@ namespace FrameProcessor
    * \param[out] out - Pointer to the allocated memory where the reordered image is written.
    * \param[in] stripe_is_even - boolean indicating if stripe has even orientation
    */
-  void ExcaliburProcessPlugin::reorder_6bit_stripe(unsigned char* in, unsigned char* out,
+  void QEMIIProcessPlugin::reorder_6bit_stripe(unsigned char* in, unsigned char* out,
       bool stripe_is_even)
   {
     int block, y, x, chip, x2, pixel_x, pixel_y, pixel_addr;
@@ -542,7 +542,7 @@ namespace FrameProcessor
    * \param[in] stripe_is_even - boolean indicating if stripe has even orientation
    *
    */
-  void ExcaliburProcessPlugin::reorder_12bit_stripe(unsigned short* in, unsigned short* out,
+  void QEMIIProcessPlugin::reorder_12bit_stripe(unsigned short* in, unsigned short* out,
       bool stripe_is_even)
   {
     int block, y, x, chip, x2, pixel_x, pixel_y, pixel_addr;
@@ -594,7 +594,7 @@ namespace FrameProcessor
      * \param[out] out - Pointer to the allocated memory where the reordered image is written.
      * \param[in] stripe_is_even - boolean indicating if stripe has even orientation
      */
-    void ExcaliburProcessPlugin::reorder_24bit_stripe(unsigned short* in_c0,
+    void QEMIIProcessPlugin::reorder_24bit_stripe(unsigned short* in_c0,
         unsigned short* in_c1, unsigned int* out, bool stripe_is_even)
     {
       int block, y, x, chip, x2, pixel_x, pixel_y, pixel_addr;
