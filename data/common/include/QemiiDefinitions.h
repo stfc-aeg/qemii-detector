@@ -13,7 +13,7 @@ namespace Qemii {
     static const size_t num_EOFS = 1;
     static const size_t num_SOFS = 1;
     static const size_t max_num_fems = 4;
-    static const uint32_t EOF_marker = (64 << 24) + 7;
+    static const uint32_t EOF_marker = (64 << 24);// + 7;
     static const uint32_t SOF_marker = 128 << 24;
     static const uint32_t packet_num_mask = 0x3FFFFFFF;
     static const int32_t default_frame_number = -1;
@@ -21,8 +21,8 @@ namespace Qemii {
 
     typedef struct
     {
-        uint32_t packet_number;
         uint32_t frame_number;
+        uint32_t packet_number;
     } PacketHeader;
 
     typedef struct

@@ -31,8 +31,8 @@ QemiiFrameDecoder::QemiiFrameDecoder():
     dropped_frame_buffer_.reset(new uint8_t[Qemii::max_frame_size()]);
     ignored_packet_buffer_.reset(new uint8_t[Qemii::packet_size]);
     this->logger_ = Logger::getLogger("FR.QemiiDecoderPlugin");
+    LOG4CXX_INFO(logger_, "QemiiFrameDecoder version " << this->get_version_long() << " loaded");
 
-    // logger?
 }
 
 //! Destructor for QemiiFrameDecoder
@@ -69,17 +69,34 @@ std::string QemiiFrameDecoder::get_version_long()
 
 void QemiiFrameDecoder::init(LoggerPtr& logger, OdinData::IpcMessage& config_msg){
 
+
     FrameDecoder::init(logger_, config_msg);
+
+    LOG4CXX_DEBUG_LEVEL(2, logger_, "Got decoder config message: " << config_msg.encode());
+
     
     if(config_msg.has_param(Qemii::CONFIG_FEM_PORT_MAP)){
 
         fem_port_map_str_ = config_msg.get_param<std::string>(Qemii::CONFIG_FEM_PORT_MAP);
+        LOG4CXX_DEBUG_LEVEL(1, logger_, "Parsing FEM to port map found in config: "
+                          << fem_port_map_str_);
     }
     else{
+        LOG4CXX_DEBUG_LEVEL(1,logger_, "No FEM to port map found in config, using default: "
+                          << default_fem_port_map);
         fem_port_map_str_ = default_fem_port_map;
     }
 
     num_active_fems_ = parse_fem_port_map(fem_port_map_str_);
+
+    if (num_active_fems_)  {
+        LOG4CXX_DEBUG_LEVEL(1, logger_, "Parsed " << num_active_fems_
+                            << " entries from port map configuration");
+    }
+    else
+    {
+        throw OdinData::OdinDataException("Failed to parse FEM to port map entries from configuration");
+    }
 
     packets_ignored_ = 0;
     packets_lost_ = 0;
@@ -145,14 +162,14 @@ void QemiiFrameDecoder::process_packet_header (size_t bytes_received, int port,
     bool start_of_frame_marker = get_sof_marker();
     bool end_of_frame_marker = get_eof_marker();
 
-    /*
+    
     LOG4CXX_DEBUG_LEVEL(3, logger_, "Got packet header:" << " packet: " << packet_number
-        << " subframe ctr: " << subframe_counter
-        << " idx:" << subframe_idx << " SOF: " << (int) start_of_frame_marker
+        << " frame: " << frame_number
+        << " SOF: " << (int) start_of_frame_marker
         << " EOF: " << (int) end_of_frame_marker
         << " port: " << port << " fem idx: " << current_packet_fem_map_.fem_idx_
     );
-    */
+    
 
   // Only handle the packet header and frame logic further if this packet is not being ignored
   if (current_packet_fem_map_.fem_idx_ != ILLEGAL_FEM_IDX)
@@ -460,10 +477,13 @@ unsigned int QemiiFrameDecoder::elapsed_ms(struct timespec& start, struct timesp
 }
 
 
-void QemiiFrameDecoder::reset_stats(void){
+void QemiiFrameDecoder::reset_statistics(void){
 
       // Call the base class reset method
-  FrameDecoderUDP::reset_statistics();
+    FrameDecoderUDP::reset_statistics();
+
+    LOG4CXX_DEBUG_LEVEL(1, logger_, "Resetting QemiiFrameDecoder statistics");
+
 
   // Reset the scratched and lost packet counters
   packets_ignored_ = 0;

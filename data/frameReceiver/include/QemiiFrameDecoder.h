@@ -72,7 +72,7 @@ namespace FrameReceiver
     uint32_t get_packet_num(void) const;
     uint32_t get_frame_num(void) const;
 
-    void reset_stats(void);
+    void reset_statistics(void);
     unsigned int elapsed_ms(struct timespec& start, struct timespec& end);
     int parse_fem_port_map(std::string& port_map);
 
