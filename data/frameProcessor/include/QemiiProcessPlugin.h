@@ -1,5 +1,5 @@
 /*
-x * ExcaliburProcessPlugin.h
+x * QEMIIProcessPlugin.h
  *
  *  Created on: 6 Jun 2016
  *      Author: gnx91527
@@ -17,7 +17,7 @@ using namespace log4cxx::helpers;
 
 
 #include "FrameProcessorPlugin.h"
-#include "ExcaliburDefinitions.h"
+#include "QemiiDefinitions.h"
 #include "ClassLoader.h"
 
 #define FEM_PIXELS_PER_CHIP_X 256
@@ -49,17 +49,17 @@ using namespace log4cxx::helpers;
 namespace FrameProcessor
 {
 
-  /** Processing of Excalibur Frame objects.
+  /** Processing of QEMII Frame objects.
    *
-   * The ExcaliburProcessPlugin class is currently responsible for receiving a raw data
-   * Frame object and reordering the data into valid Excalibur frames according to the selected
+   * The QEMIIProcessPlugin class is currently responsible for receiving a raw data
+   * Frame object and reordering the data into valid QEMII frames according to the selected
    * bit depth.
    */
-  class ExcaliburProcessPlugin : public FrameProcessorPlugin
+  class QEMIIProcessPlugin : public FrameProcessorPlugin
   {
   public:
-    ExcaliburProcessPlugin();
-    virtual ~ExcaliburProcessPlugin();
+    QEMIIProcessPlugin();
+    virtual ~QEMIIProcessPlugin();
     
     int get_version_major();
     int get_version_minor();
@@ -122,7 +122,7 @@ namespace FrameProcessor
    * Registration of this plugin through the ClassLoader.  This macro
    * registers the class without needing to worry about name mangling
    */
-  REGISTER(FrameProcessorPlugin, ExcaliburProcessPlugin, "ExcaliburProcessPlugin");
+  REGISTER(FrameProcessorPlugin, QEMIIProcessPlugin, "QEMIIProcessPlugin");
 
 } /* namespace FrameProcessor */
 

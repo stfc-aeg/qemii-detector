@@ -10,18 +10,18 @@ include_directories(${FRAMEPROCESSOR_DIR}/include ${ODINDATA_INCLUDE_DIRS}
 file(GLOB TEST_SOURCES *.cpp)
 
 # Add test and project source files to executable
-add_executable(excaliburFrameProcessorTest ${TEST_SOURCES})
+add_executable(QemiiFrameProcessorTest ${TEST_SOURCES})
 
 if ( ${CMAKE_SYSTEM_NAME} MATCHES Linux )
 # librt required for timing functions
 find_library(REALTIME_LIBRARY 
 		NAMES rt)
-target_link_libraries( excaliburFrameProcessorTest ${REALTIME_LIBRARY} )
+target_link_libraries( QemiiFrameProcessorTest ${REALTIME_LIBRARY} )
 endif()
 
 # Define libraries to link against
-target_link_libraries(excaliburFrameProcessorTest
-	    ExcaliburProcessPlugin
+target_link_libraries(QemiiFrameProcessorTest
+	    QemiiProcessPlugin
 		${ODINDATA_LIBRARIES} 
 		${Boost_LIBRARIES}
 		${LOG4CXX_LIBRARIES}

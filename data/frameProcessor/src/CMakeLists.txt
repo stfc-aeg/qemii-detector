@@ -6,6 +6,6 @@ include_directories(${FRAMEPROCESSOR_DIR}/include ${ODINDATA_INCLUDE_DIRS}
 	${Boost_INCLUDE_DIRS} ${LOG4CXX_INCLUDE_DIRS}/.. ${ZEROMQ_INCLUDE_DIRS})
 
 # Add library for excalibur plugin
-add_library(ExcaliburProcessPlugin SHARED ExcaliburProcessPlugin.cpp)
+add_library(QEMIIProcessPlugin SHARED QemiiProcessPlugin.cpp)
 
-install(TARGETS ExcaliburProcessPlugin LIBRARY DESTINATION lib)
+install(TARGETS QEMIIProcessPlugin LIBRARY DESTINATION lib)

@@ -1,32 +1,32 @@
-#define BOOST_TEST_MODULE "ExcaliburFrameProcessorTests"
+#define BOOST_TEST_MODULE "QEMIIFrameProcessorTests"
 #define BOOST_TEST_MAIN
 #include <boost/test/unit_test.hpp>
 #include <boost/shared_ptr.hpp>
 
 #include <iostream>
 
-#include "ExcaliburProcessPlugin.h"
+#include "QemiiProcessPlugin.h"
 #include "DebugLevelLogger.h"
 
-class ExcaliburProcessPluginTestFixture
+class QEMIIProcessPluginTestFixture
 {
 public:
-	ExcaliburProcessPluginTestFixture()
+	QEMIIProcessPluginTestFixture()
 	{
-		std::cout << "ExcaliburProcessPluginTestFixture constructor" << std::endl;
+		std::cout << "QEMIIProcessPluginTestFixture constructor" << std::endl;
 	}
 
-	~ExcaliburProcessPluginTestFixture()
+	~QEMIIProcessPluginTestFixture()
 	{
-		std::cout << "ExcaliburProcessPluginTestFixture destructor" << std::endl;
+		std::cout << "QEMIIProcessPluginTestFixture destructor" << std::endl;
 	}
 };
 
-BOOST_FIXTURE_TEST_SUITE(ExcaliburProcessPluginUnitTest, ExcaliburProcessPluginTestFixture);
+BOOST_FIXTURE_TEST_SUITE(QEMIIProcessPluginUnitTest, QEMIIProcessPluginTestFixture);
 
-BOOST_AUTO_TEST_CASE(ExcaliburProcessPluginTestFixture)
+BOOST_AUTO_TEST_CASE(QEMIIProcessPluginTestFixture)
 {
-	std::cout << "ExcaliburProcessPluginTestFixture test case" << std::endl;
+	std::cout << "QEMIIProcessPluginTestFixture test case" << std::endl;
 }
 
 BOOST_AUTO_TEST_SUITE_END();
