@@ -1,8 +1,7 @@
 /*
- * QEMIIDefinitions.h
-
- */
-
+*   QemiiDefinitions.h
+*   Sophie Kirkham, STFC AEG. Jan, 2019.
+*/
 #ifndef INCLUDE_QEMIIDEFINITIONS_H_
 #define INCLUDE_QEMIIDEFINITIONS_H_
 

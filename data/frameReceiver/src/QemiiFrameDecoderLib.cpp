@@ -1,4 +1,7 @@
-
+/*
+*   QemiiFrameDecoderLib.cpp
+*   Sophie Kirkham, STFC AEG. Jan, 2019.
+*/
 #include "QemiiFrameDecoder.h"
 #include "ClassLoader.h"
 

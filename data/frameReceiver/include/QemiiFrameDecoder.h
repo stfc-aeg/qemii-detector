@@ -1,3 +1,7 @@
+/*
+*   QemiiFrameDecoder.h
+*   Sophie Kirkham, STFC AEG. Jan, 2019.
+*/
 
 #ifndef INCLUDE_QEMIIFRAMEDECODER_H_
 #define INCLUDE_QEMIIFRAMEDECODER_H_
