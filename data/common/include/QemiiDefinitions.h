@@ -8,6 +8,7 @@
 namespace Qemii {
 
     static const size_t packet_size = 7352;
+    static const size_t payload_size = packet_size - 8;
     static const size_t num_frame_packets = 8;
     static const size_t num_EOFS = 1;
     static const size_t num_SOFS = 1;
@@ -17,6 +18,11 @@ namespace Qemii {
     static const uint32_t packet_num_mask = 0x3FFFFFFF;
     static const int32_t default_frame_number = -1;
     const std::string CONFIG_FEM_PORT_MAP = "fem_port_map";
+    static const uint16_t qemi_image_width = 288;
+    static const uint8_t qemi_image_height = 102;
+    static const uint16_t qemi_image_pixels = qemi_image_height * qemi_image_width;
+    static const std::string CONFIG_QEMI_BIT_DEPTH = "16-bit";
+    static const in QEMI_BIT_DEPTH = 1;
 
     typedef struct
     {
