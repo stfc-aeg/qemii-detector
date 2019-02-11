@@ -56,9 +56,11 @@ namespace FrameProcessor
     static const std::string CONFIG_IMAGE_WIDTH;
     /** Configuration constant for image height **/
     static const std::string CONFIG_IMAGE_HEIGHT;
+    static const std::string BIT_DEPTH[2];
 
-    void process_lost_packets(boost::shared_ptr<Frame> frame);
+    boost::shared_ptr<Frame> process_lost_packets(boost::shared_ptr<Frame> frame);
     void process_frame(boost::shared_ptr<Frame> frame);
+    std::size_t reordered_image_size(int asic_counter_depth);
 
     /** Pointer to logger **/
     LoggerPtr logger_;

@@ -22,7 +22,7 @@ namespace Qemii {
     static const uint8_t qemi_image_height = 102;
     static const uint16_t qemi_image_pixels = qemi_image_height * qemi_image_width;
     static const std::string CONFIG_QEMI_BIT_DEPTH = "16-bit";
-    static const in QEMI_BIT_DEPTH = 1;
+    static const int QEMI_BIT_DEPTH = 1;
 
     typedef struct
     {

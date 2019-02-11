@@ -14,13 +14,13 @@ namespace FrameProcessor
   const std::string QemiiProcessPlugin::CONFIG_ASIC_COUNTER_DEPTH = "bitdepth";
   const std::string QemiiProcessPlugin::CONFIG_IMAGE_WIDTH = "width";
   const std::string QemiiProcessPlugin::CONFIG_IMAGE_HEIGHT = "height";
-  const std::string QemiiProcessPlugin::BIT_DEPTH[2] = {"12-bit", "24-bit"};
+  const std::string QemiiProcessPlugin::BIT_DEPTH[2] = {"12-bit", "16-bit"};
 
   /**
    * The constructor sets up logging used within the class.
    */
   QemiiProcessPlugin::QemiiProcessPlugin() :
-      asic_counter_depth_(DEPTH_12_BIT),
+      asic_counter_depth_(Qemii::QEMI_BIT_DEPTH),
       image_width_(Qemii::qemi_image_width),
       image_height_(Qemii::qemi_image_height),
       image_pixels_(Qemii::qemi_image_pixels),
@@ -74,7 +74,7 @@ namespace FrameProcessor
   {
     if (config.has_param(QemiiProcessPlugin::CONFIG_DROPPED_PACKETS))
     {
-      packets_lost_ = config.get_param<int>(QemiiProcessPlugin::CONFIG_DROPPED_PACKETS);
+      total_packets_lost_ = config.get_param<int>(QemiiProcessPlugin::CONFIG_DROPPED_PACKETS);
     }
 
     
@@ -135,7 +135,7 @@ namespace FrameProcessor
     // Record the plugin's status items
     LOG4CXX_INFO(logger_, "Status requested for Qemii plugin");
     status.set_param(get_name() + "/bitdepth", BIT_DEPTH[asic_counter_depth_]);
-    status.set_param(get_name() + "/packets_lost", packets_lost_);
+    status.set_param(get_name() + "/packets_lost", total_packets_lost_);
   }
 
  
@@ -144,16 +144,17 @@ namespace FrameProcessor
     LOG4CXX_INFO(logger_, "Statistics reset requested for Qemii plugin")
     
     // Reset packets lost counter
-    packets_lost_ = 0;
+    total_packets_lost_ = 0;
 
     return true;
   }
 
   
-  boost shared_ptr<Frame> QemiiProcessPlugin::process_lost_packets(boost::shared_ptr<Frame> frame)
+  boost::shared_ptr<Frame> QemiiProcessPlugin::process_lost_packets(boost::shared_ptr<Frame> frame)
   {
 
-    Qemii::FrameHeader* frame_header_ptr = reinterpret_cast<Qemii::FrameHeader*>(Frame->get_data());
+    boost::shared_ptr<Frame> checked_frame = frame;
+    const Qemii::FrameHeader* frame_header_ptr = static_cast<const Qemii::FrameHeader*>(frame->get_data());
 
     LOG4CXX_INFO(logger_, "Processing lost packets for Frame :" << frame_header_ptr->frame_number);
     LOG4CXX_INFO(logger_, "Received: " << frame_header_ptr->total_packets_received
@@ -167,10 +168,11 @@ namespace FrameProcessor
       void* image = (void*)malloc(num_bytes);
       memcpy(image, frame->get_data(), num_bytes);
 
-      int num_packets_lost = (Qemii::num_frame_packets * (int)frame_header_ptr->num_active_fems) - frame_header_ptr->total_packets_received);
+      int num_packets_lost = (Qemii::num_frame_packets * (int)frame_header_ptr->num_active_fems) - frame_header_ptr->total_packets_received;
       
       total_packets_lost_ += num_packets_lost;
       LOG4CXX_INFO(logger_, "Lost a total of : " << total_packets_lost_ << "since starting.");
+      
 
       // go over each active fem
       for(int fem = 0; fem < frame_header_ptr->num_active_fems; fem++){
@@ -182,9 +184,9 @@ namespace FrameProcessor
         for(int packet = 0; packet < Qemii::num_frame_packets; packet++){
 
           // check the packet state flag for this packet.
-          if(frame_header_ptr->fem_rx_state[fem]->packet_state[packet] == 0){
+          if(frame_header_ptr->fem_rx_state[fem].packet_state[packet] == 0){
 
-            LOG4CXX_INFO(logger_, "missing packet nnumber : " << packet << " of Frame : " << frame_header_ptr->frame_number);
+            LOG4CXX_INFO(logger_, "missing packet number : " << packet << " of Frame : " << frame_header_ptr->frame_number);
 
             memset(packet_ptr, 0, Qemii::payload_size); // set the packet data to 0's
 
@@ -195,7 +197,7 @@ namespace FrameProcessor
        
       }
 
-      checked_frame = boost::shared_ptr<Frame>(new Frame("Checked"))
+      checked_frame = boost::shared_ptr<Frame>(new Frame("Checked"));
       checked_frame->copy_data(image, num_bytes);
       free(image);
 
@@ -213,21 +215,24 @@ namespace FrameProcessor
 
     frame = this->process_lost_packets(frame);
 
-    Qemii::FrameHeader* frame_header_ptr = reinterpret_cast<Qemii::FrameHeader*>(frame->get_data());
+    const Qemii::FrameHeader* frame_header_ptr = static_cast<const Qemii::FrameHeader*>(frame->get_data());
 
     LOG4CXX_INFO(logger_, "Processing Image for Frame Number: " << frame_header_ptr->frame_number);
     LOG4CXX_INFO(logger_, "Frame State: " << frame_header_ptr->frame_state);
     LOG4CXX_INFO(logger_, "Total Packets Received: " << frame_header_ptr->total_packets_received);
-    LOG4CXX_INFO(logger_, "SOF's Seen : " << frame_header_ptr->total_sof_marker_count);
-    LOG4CXX_INFO(logger_, "EOF's Seen : " << frame_header_ptr->total_eof_marker_count);
+    LOG4CXX_INFO(logger_, "SOF's Seen : " << (int)frame_header_ptr->total_sof_marker_count);
+    LOG4CXX_INFO(logger_, "EOF's Seen : " << (int)frame_header_ptr->total_eof_marker_count);
                             
     // get the size of the final image
 
     // allocate memory for that image size
 
-    size_t image_size = reordered_image_size(QEMI_BIT_DEPTH);
+    size_t image_size = reordered_image_size(Qemii::QEMI_BIT_DEPTH);
+    std::cout << image_size << std::endl;
 
-    void* frame_data = static_cast<void*>(frame->get_data() + sizeof(Qemii::FrameHeader));
+    const void* frame_data = static_cast<const void*>(static_cast<const char*>(frame->get_data() + sizeof(Qemii::FrameHeader)));
+
+  
 
     //only one fem.. so this is all of the data.
 
@@ -239,13 +244,13 @@ namespace FrameProcessor
     boost::shared_ptr<Frame> the_frame = boost::shared_ptr<Frame>(new Frame("data"));
 
     the_frame->set_frame_number(frame_header_ptr->frame_number);
-    data_frame->set_dimensions(dimensions);
-    data_frame->copy_data(frame_data, output_image_size);
+    the_frame->set_dimensions(dimensions);
+    the_frame->copy_data(frame_data, image_size);
 
     LOG4CXX_TRACE(logger_, "Pushing data frame.");
-    this->push(data_frame);
+    this->push(the_frame);
 
-    free(frame_data);
+    //free(const_cast<void*>(frame_data));
     frame_data = NULL;
 
   }
@@ -255,8 +260,11 @@ namespace FrameProcessor
 
     std::size_t image_size = 0;
 
+    //std::cout << asic_counter_depth << std::endl;
+
     switch (asic_counter_depth)
     {
+      /*
       case DEPTH_1_BIT:
       case DEPTH_6_BIT:
         image_size = image_width_ * image_height_ * sizeof(unsigned char);
@@ -269,10 +277,10 @@ namespace FrameProcessor
       case DEPTH_24_BIT:
         image_size = image_width_ * image_height_ * sizeof(unsigned int);
         break;
-
-      case QEMI_BIT_DEPTH:
+      */
+      case Qemii::QEMI_BIT_DEPTH:
         image_size = image_width_ * image_height_ * sizeof(uint16_t);
-
+        break;
       default:
       {
         std::stringstream msg;
@@ -286,7 +294,7 @@ namespace FrameProcessor
 
   }
 
-
+/*
   void QemiiProcessPlugin::reorder_12bit_stripe(unsigned short* in, unsigned short* out,
       bool stripe_is_even)
   {
@@ -300,6 +308,6 @@ namespace FrameProcessor
 
   }
 
-
+*/
 } /* namespace FrameProcessor */
 
