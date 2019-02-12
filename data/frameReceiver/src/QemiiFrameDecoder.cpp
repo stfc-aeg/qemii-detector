@@ -332,21 +332,22 @@ void* QemiiFrameDecoder::get_packet_header_buffer(void){
 */
 void* QemiiFrameDecoder::get_next_payload_buffer(void) const{
 
-  uint8_t* next_receive_location;
+    uint8_t* next_receive_location;
+    void * print_location;
 
-  if (current_packet_fem_map_.fem_idx_ != ILLEGAL_FEM_IDX)
-  {
+    if (current_packet_fem_map_.fem_idx_ != ILLEGAL_FEM_IDX)
+    {
 
-    next_receive_location = reinterpret_cast<uint8_t*>(current_frame_buffer_)
-          + get_frame_header_size ()
-          + (Qemii::packet_size * get_packet_num());
-  }
-  else
-  {
-    next_receive_location = reinterpret_cast<uint8_t*>(ignored_packet_buffer_.get());
-  }
-
-  return reinterpret_cast<void*>(next_receive_location);
+        next_receive_location = reinterpret_cast<uint8_t*>(current_frame_buffer_)
+            + get_frame_header_size ()
+            + (Qemii::payload_size * this->get_packet_num()); //changes to payload_size
+    }
+    else
+    {
+        next_receive_location = reinterpret_cast<uint8_t*>(ignored_packet_buffer_.get());
+    }
+    
+    return reinterpret_cast<void*>(next_receive_location);
 }
 
 
