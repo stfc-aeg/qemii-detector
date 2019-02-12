@@ -42,7 +42,7 @@ namespace FrameProcessor
     std::string get_version_short();
     std::string get_version_long();
 
-    void configure(OdinData::IpcMessage& config, OdinData::IpcMessage& reply);
+    void configure(OdinData::IpcMessage& config);
     void status(OdinData::IpcMessage& status);
     bool reset_statistics(void);
 

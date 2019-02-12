@@ -69,8 +69,15 @@ namespace FrameProcessor
     return ODIN_DATA_VERSION_STR;
   }
 
-  
-  void QemiiProcessPlugin::configure(OdinData::IpcMessage& config, OdinData::IpcMessage& reply)
+  /*
+    Configure the frame processor 
+    @param config: reference to an ipc config message with the parsed configuration params
+
+    This method parses the configuration message updating the internal varibles with the 
+    parameters to configure the processor. The total_packets_lost_, asic_counter_bit_depth_,
+    image_width_ and image_hieght are all configured within this function.
+  */
+  void QemiiProcessPlugin::configure(OdinData::IpcMessage& config)
   {
     if (config.has_param(QemiiProcessPlugin::CONFIG_DROPPED_PACKETS))
     {
@@ -129,7 +136,12 @@ namespace FrameProcessor
 
   }
 
-  
+  /*
+    Gets the status of the frame processor. 
+    @param status: reference to an ipc status message to hold the parameters in.
+    This method populates the provided status message with the bitdepth and
+    number of total packets lost for the current DAQ.
+  */
   void QemiiProcessPlugin::status(OdinData::IpcMessage& status)
   {
     // Record the plugin's status items
@@ -138,7 +150,11 @@ namespace FrameProcessor
     status.set_param(get_name() + "/packets_lost", total_packets_lost_);
   }
 
- 
+  /*
+    Reset the statistics for the frame processor.
+    @return true.
+    This method resets the total number of packets lost during a DAQ to 0.
+  */
   bool QemiiProcessPlugin::reset_statistics(void)
   {
     LOG4CXX_INFO(logger_, "Statistics reset requested for Qemii plugin")
@@ -149,7 +165,15 @@ namespace FrameProcessor
     return true;
   }
 
-  
+  /*
+    Process lost packets in a given QEM Frame.
+    @param frame: shared pointer to a Frame object containing the raw frame data
+    @returns checked_frame : shared pointer Frame object to the processed frame.
+
+    This method analyses the given frame to see if all expected packets have been
+    received. If there are packets missing within the frame, the data for these packets 
+    are zeroed out as the memory may contain data from a previous frame.
+  */
   boost::shared_ptr<Frame> QemiiProcessPlugin::process_lost_packets(boost::shared_ptr<Frame> frame)
   {
 
@@ -207,7 +231,16 @@ namespace FrameProcessor
     return checked_frame;
   }
 
- 
+  /*
+    Process a QEM frame and release ready to be written to hdf5 as an image.
+    @param frame: shread pointer to a Frame object holding the raw frame data.
+
+    This method processes the incoming frame for lost packets and gets status information
+    about the frame from the frame header. It calculates the image size and reshapes the frame data
+    to fit the image width and height configured in the processor. 
+    The frame is then copied and released to be processed by the rest of the processing chain.
+  */
+
   void QemiiProcessPlugin::process_frame(boost::shared_ptr<Frame> frame)
   {
     LOG4CXX_INFO(logger_, "Reordering frame.");
@@ -232,8 +265,6 @@ namespace FrameProcessor
 
     const void* frame_data = static_cast<const void*>(static_cast<const char*>(frame->get_data() + sizeof(Qemii::FrameHeader)));
 
-  
-
     //only one fem.. so this is all of the data.
 
   // Setup the frame dimensions and do a reshape.
@@ -249,35 +280,24 @@ namespace FrameProcessor
 
     LOG4CXX_TRACE(logger_, "Pushing data frame.");
     this->push(the_frame);
-
-    //free(const_cast<void*>(frame_data));
     frame_data = NULL;
 
   }
 
- 
+ /*
+  Calculate the size of a reordered image. 
+  @param asic_counter_depth: integer value for the bitdepth used.
+  @returns image_size: size_t object with the number of bytes in an image
+  @throws runtime_error : if the bit depth provided is not recognised.
+  This method caculates the image size using the provided bit depth, image width
+  and image height that the processor is configured with. 
+ */
   std::size_t QemiiProcessPlugin::reordered_image_size(int asic_counter_depth) {
 
     std::size_t image_size = 0;
 
-    //std::cout << asic_counter_depth << std::endl;
-
     switch (asic_counter_depth)
     {
-      /*
-      case DEPTH_1_BIT:
-      case DEPTH_6_BIT:
-        image_size = image_width_ * image_height_ * sizeof(unsigned char);
-        break;
-
-      case DEPTH_12_BIT:
-        image_size = image_width_ * image_height_ * sizeof(unsigned short);
-        break;
-
-      case DEPTH_24_BIT:
-        image_size = image_width_ * image_height_ * sizeof(unsigned int);
-        break;
-      */
       case Qemii::QEMI_BIT_DEPTH:
         image_size = image_width_ * image_height_ * sizeof(uint16_t);
         break;
@@ -294,20 +314,5 @@ namespace FrameProcessor
 
   }
 
-/*
-  void QemiiProcessPlugin::reorder_12bit_stripe(unsigned short* in, unsigned short* out,
-      bool stripe_is_even)
-  {
-
-  }
-
-
-  void QemiiProcessPlugin::reorder_16bit_stripe(unsigned short* in,
-        unsigned int* out, bool stripe_is_even)
-  {
-
-  }
-
-*/
 } /* namespace FrameProcessor */
 

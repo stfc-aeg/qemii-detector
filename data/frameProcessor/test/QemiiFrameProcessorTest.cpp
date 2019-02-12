@@ -1,4 +1,4 @@
-#define BOOST_TEST_MODULE "QEMIIFrameProcessorTests"
+#define BOOST_TEST_MODULE "QemiiFrameProcessorTests"
 #define BOOST_TEST_MAIN
 #include <boost/test/unit_test.hpp>
 #include <boost/shared_ptr.hpp>
@@ -8,25 +8,25 @@
 #include "QemiiProcessPlugin.h"
 #include "DebugLevelLogger.h"
 
-class QEMIIProcessPluginTestFixture
+class QemiiProcessPluginTestFixture
 {
 public:
-	QEMIIProcessPluginTestFixture()
+	QemiiProcessPluginTestFixture()
 	{
-		std::cout << "QEMIIProcessPluginTestFixture constructor" << std::endl;
+		std::cout << "QemiiProcessPluginTestFixture constructor" << std::endl;
 	}
 
-	~QEMIIProcessPluginTestFixture()
+	~QemiiProcessPluginTestFixture()
 	{
-		std::cout << "QEMIIProcessPluginTestFixture destructor" << std::endl;
+		std::cout << "QemiiProcessPluginTestFixture destructor" << std::endl;
 	}
 };
 
-BOOST_FIXTURE_TEST_SUITE(QEMIIProcessPluginUnitTest, QEMIIProcessPluginTestFixture);
+BOOST_FIXTURE_TEST_SUITE(QemiiProcessPluginUnitTest, QemiiProcessPluginTestFixture);
 
-BOOST_AUTO_TEST_CASE(QEMIIProcessPluginTestFixture)
+BOOST_AUTO_TEST_CASE(QemiiProcessPluginTestFixture)
 {
-	std::cout << "QEMIIProcessPluginTestFixture test case" << std::endl;
+	std::cout << "QemiiProcessPluginTestFixture test case" << std::endl;
 }
 
 BOOST_AUTO_TEST_SUITE_END();
