@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+
+<html lang="en">
+    <head>
+
+        <meta charset="UTF-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+
+        <link href="js/bootstrap-3.3.6-dist/css/bootstrap.min.css" rel="stylesheet">
+        <link href="css/odin-server.css" rel="stylesheet">
+        <link href="css/lpdpower.css" rel="stylesheet">
+
+        <title>ODIN Server</title>
+    </head>
+
+    <body>
+
+        <div id="app"></div>
+
+        <!------------------------------------------------------------------------------------------------------------------>
+        <!-- Scripts -->
+        <!------------------------------------------------------------------------------------------------------------------>
+
+        <!-- jQuery - For Bootstrap and Odin scripts -->
+        <script src="js/jquery-2.2.3.min.js" type="text/javascript"></script>
+        <!-- Bootstrap JS-->
+        <script src="js/bootstrap-3.3.6-dist/js/bootstrap.min.js" type="text/javascript"></script>
+
+        <script type="text/javascript" src="js/odin_server.js"></script>
+
+        <script type="text/javascript" src="js/components/App.js"></script>
+
+
+        <!-- Application entry point -->
+        <script type="text/javascript">
+            $(document).ready(function() {
+                initAPI()
+                .then(initApp);
+            });
+        </script>
+
+    </body>
+</html>
