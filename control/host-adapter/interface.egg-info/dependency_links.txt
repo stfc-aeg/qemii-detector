@@ -1,1 +1,0 @@
-https://github.com/stfc-aeg/odin-control/zipball/0.2.0#egg=odin-0.2.0

@@ -1,0 +1,12 @@
+MANIFEST.in
+setup.cfg
+setup.py
+versioneer.py
+workshop/__init__.py
+workshop/_version.py
+workshop/adapter.py
+workshop.egg-info/PKG-INFO
+workshop.egg-info/SOURCES.txt
+workshop.egg-info/dependency_links.txt
+workshop.egg-info/not-zip-safe
+workshop.egg-info/top_level.txt

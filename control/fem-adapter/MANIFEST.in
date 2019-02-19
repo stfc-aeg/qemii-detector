@@ -1,3 +1,0 @@
-include versioneer.py
-include lpdpower/_version.py
-include qem/_version.py
