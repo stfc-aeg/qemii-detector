@@ -48,3 +48,27 @@ function change_enable() {
         data: JSON.stringify({'enable': enabled})
     });
 }
+
+function set_file_name(){
+
+}
+
+function set_file_path(){
+
+}
+
+function load_fp_config_file(){
+
+}
+
+function load_fr_config_file(){
+
+}
+
+function start_filewriter(){
+
+}
+
+function stop_filewriter(){
+    
+}

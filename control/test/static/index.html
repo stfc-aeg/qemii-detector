@@ -38,14 +38,52 @@
       <div class="container">
 
         <div class="odin-server">
-          <h1>ODIN Workshop</h1>
-          <p class="lead">Welcome to the ODIN workshop!</p>
+          <h1>QEM-II Data Acquisition</h1>
           <p>API version is:&nbsp;<span id="api-version">&nbsp;</span></p>
           <p>Registered API adapters:&nbsp;<span id="api-adapters">&nbsp;</span></p>
           <p>Workshop background task count:&nbsp;<span id="task-count">&nbsp;</span></p>
           <p>Enable background task:&nbsp;<input type="checkbox" id="task-enable" onclick="change_enable()"/></p>
         </div>
 
+        
+        <div class = "container" id = "configuration-container">
+          <span>
+            <h3>File Writer Configuration</h3>
+          </span>
+          <div class = "btn-group">
+            <button id="Start-filewrite" type="button" class="btn btn-default">Start</button>
+            <button id="stop-filewrite" type="button" class="btn btn-default">Stop</button>
+          </div>
+          <div class = "container" id = 'input-div'>
+            <div class="input-group">
+                <input class="form-control text-right bias" id="file-path" aria-label="File Path" placeholder="/tmp/" type="text">
+                <span id='file-path-addon' class="input-group-addon">File Path</span>
+            </div>
+            <div class="input-group">
+                <input class="form-control text-right bias" id="file-name" aria-label="File Name" placeholder="data" type="text">
+                <span id='file-name-addon' class="input-group-addon">File Name</span>
+            </div>
+          </div>
+          <span>
+            <h3>Frame Receiver Configuration</h3>
+          </span>
+              <div class="dropdown-file">
+                  <button id="toggle-btn" class="btn btn-primary dropdown-toggle" type="button" data-toggle="dropdown" aria-expanded="false">Frame Receiver Configuration File
+                  <span class="caret"></span></button>
+                  <ul class="dropdown-menu" id="file_list"></ul>
+              </div>
+              <span id="current-receiver-file"></span>
+      
+            <span>
+              <h3>Frame Processor Configuration</h3>
+            </span>
+                <div class="dropdown-file">
+                    <button id="toggle-btn" class="btn btn-primary dropdown-toggle" type="button" data-toggle="dropdown" aria-expanded="false">Frame Processor Configuration File
+                    <span class="caret"></span></button>
+                    <ul class="dropdown-menu" id="file_list"></ul>
+                </div>
+                <span id="current-processor-file"></span>
+            </div>
       </div><!-- /.container -->
 
     <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
