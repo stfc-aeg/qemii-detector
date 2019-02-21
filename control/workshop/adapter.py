@@ -8,6 +8,7 @@ import logging
 import tornado
 import time
 from concurrent import futures
+import os 
 
 from tornado.ioloop import IOLoop
 from tornado.concurrent import run_on_executor
@@ -134,6 +135,10 @@ class Workshop():
         # Save arguments
         self.background_task_enable = background_task_enable
         self.background_task_interval = background_task_interval
+        self.fp_config_files = []
+        self.txt_files = []
+        self.fr_config_files = []
+        self.abs_directory = '/aeg_sw/work/projects/qem/qem-ii/install/config/'
 
         # Store initialisation time
         self.init_time = time.time()
@@ -153,6 +158,8 @@ class Workshop():
             'odin_version': version_info['version'],
             'tornado_version': tornado.version,
             'server_uptime': (self.get_server_uptime, None),
+            'fr_config_files' : (self.get_fr_config_files, None),
+            'fp_config_files' : (self.get_fp_config_files, None),
             'background_task': bg_task 
         })
 
@@ -195,6 +202,46 @@ class Workshop():
             self.param_tree.set(path, data)
         except ParameterTreeError as e:
             raise WorkshopError(e)
+
+
+    def get_text_files(self):
+        """ Retrieve all of the txt configuration files in the absolute directory path
+
+        Clears the internal lists first to prevent circular appending at every "GET"
+        """
+        self.clear_lists()
+        for file in os.listdir(self.abs_directory):
+            if file.endswith('.json') and "qemii" in file:
+                self.txt_files.append(file)
+
+    def get_fp_config_files(self):
+        """ gets the image vector files from the list of text files found
+        @returns : the image vector files list
+        """
+        self.get_text_files()
+        for file in self.txt_files: 
+            if "fp" in file:
+                self.fp_config_files.append(file)
+        return self.fp_config_files
+
+    def get_fr_config_files(self):
+        """ gets the adc vector files from the list of text files found
+        @returns : the adc vector files list
+        """
+        self.get_text_files()
+        for file in self.txt_files:
+            if "fr" in file:
+                self.fr_config_files.append(file)
+        return self.fr_config_files
+    
+    def clear_lists(self):
+        """ clears the text file, image and adc vector file lists 
+        """        
+        self.fp_config_files = []
+        self.txt_files = []
+        self.fr_config_files = []
+
+
 
     def set_task_interval(self, interval):
 

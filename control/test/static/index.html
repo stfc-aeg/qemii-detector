@@ -51,9 +51,10 @@
             <h3>File Writer Configuration</h3>
           </span>
           <div class = "btn-group">
-            <button id="Start-filewrite" type="button" class="btn btn-default">Start</button>
-            <button id="stop-filewrite" type="button" class="btn btn-default">Stop</button>
+            <button id="Start-filewrite" type="button" class="btn btn-default" onclick="start_filewriter()">Start</button>
+            <button id="stop-filewrite" type="button" class="btn btn-default" onclick="stop_filewriter()">Stop</button>
           </div>
+          <span id = 'file-badge' class="badge badge-danger">File Writer Disabled</span>
           <div class = "container" id = 'input-div'>
             <div class="input-group">
                 <input class="form-control text-right bias" id="file-path" aria-label="File Path" placeholder="/tmp/" type="text">
@@ -67,20 +68,20 @@
           <span>
             <h3>Frame Receiver Configuration</h3>
           </span>
-              <div class="dropdown-file">
-                  <button id="toggle-btn" class="btn btn-primary dropdown-toggle" type="button" data-toggle="dropdown" aria-expanded="false">Frame Receiver Configuration File
+              <div class="btn-group">
+                  <button id="toggle-btn" class="btn btn-primary dropdown-toggle" type="button" data-toggle="dropdown" aria-expanded="false" onclick="load_fr_config_file()">Frame Receiver Configuration File
                   <span class="caret"></span></button>
-                  <ul class="dropdown-menu" id="file_list"></ul>
+                  <ul class="dropdown-menu" id="fr_file_list"></ul>
               </div>
               <span id="current-receiver-file"></span>
       
             <span>
               <h3>Frame Processor Configuration</h3>
             </span>
-                <div class="dropdown-file">
-                    <button id="toggle-btn" class="btn btn-primary dropdown-toggle" type="button" data-toggle="dropdown" aria-expanded="false">Frame Processor Configuration File
+                <div class="btn-group">
+                    <button id="toggle-btn" class="btn btn-primary dropdown-toggle" type="button" data-toggle="dropdown" aria-expanded="false" onclick="load_fp_config_file()">Frame Processor Configuration File
                     <span class="caret"></span></button>
-                    <ul class="dropdown-menu" id="file_list"></ul>
+                    <ul class="dropdown-menu" id="fp_file_list"></ul>
                 </div>
                 <span id="current-processor-file"></span>
             </div>

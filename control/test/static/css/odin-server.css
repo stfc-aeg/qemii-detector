@@ -15,6 +15,24 @@ body {
 
 .input-group{
 
-    width: 25%;
+    width: 100%;
     text-align: center;
+}
+
+#input-div{
+
+    width: 25%;
+}
+
+.dropdown-menu{
+
+    float: none;
+    text-align: center;
+    width: 100%;
+  
+}
+
+#current-processor-file, #current-receiver-file{
+
+    display: block;
 }
