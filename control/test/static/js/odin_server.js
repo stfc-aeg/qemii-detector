@@ -123,12 +123,14 @@ function set_fr_file(){
 
 function start_filewriter(){
 
-    var file_path = $("#file-path").html();
+    var file_path = $("#file-path").val();
     if(file_path == ""){
-        file_path = "/tmp/";
+        console.log("file path is empty")
+        file_path = "/tmp";
     }
-    var file_name = $("#file-name").html();
+    var file_name = $("#file-name").val();
     if(file_name == ""){
+        console.log("file name is empty")
         var time = JSON.stringify(new Date());
         file_name = "qemii_data_" + time;
     }
@@ -144,14 +146,14 @@ function start_filewriter(){
                 type: "PUT",
                 url: '/api/' + api_version + '/fp/config/hdf/file/name',
                 contentType: "application/json",
-                data: JSON.stringify(file_name)
+                data: JSON.stringify(file_path)
             }).done(
                 function(){
                     $.ajax({
                         type: "PUT",
-                        url: '/api/' + api_version + '/fp/config/hdf/file/write',
+                        url: '/api/' + api_version + '/fp/config/hdf/write',
                         contentType: "application/json",
-                        data: JSON.stringify(1)
+                        data: JSON.stringify(true)
                     })
                 }
             );
@@ -159,18 +161,20 @@ function start_filewriter(){
     )
     
 
-    $("#file-badge").removeClass("badge-danger");
-    $("#file-badge").addClass("badge-success");
+    $("#file-badge").removeClass("label-danger");
+    $("#file-badge").addClass("label-success");
+    $("#file-badge").html("File Writer Enabled")
     
 }
 
 function stop_filewriter(){
-    $("#file-badge").removeClass("badge-success");
-    $("#file-badge").addClass("badge-danger");
+    $("#file-badge").removeClass("label-success");
+    $("#file-badge").addClass("label-danger");
+    $("#file-badge").html("File Writer Disabled")
     $.ajax({
         type: "PUT",
         url: '/api/' + api_version + '/fp/config/hdf/file/write',
         contentType: "application/json",
-        data: JSON.stringify(0)
+        data: JSON.stringify(false)
     })
 }

@@ -32,7 +32,8 @@ body {
   
 }
 
-#current-processor-file, #current-receiver-file{
+#current-processor-file, #file-badge, #current-receiver-file{
 
     display: block;
 }
+

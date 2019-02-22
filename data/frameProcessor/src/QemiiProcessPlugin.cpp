@@ -145,7 +145,7 @@ namespace FrameProcessor
   void QemiiProcessPlugin::status(OdinData::IpcMessage& status)
   {
     // Record the plugin's status items
-    LOG4CXX_INFO(logger_, "Status requested for Qemii plugin");
+    //LOG4CXX_INFO(logger_, "Status requested for Qemii plugin");
     status.set_param(get_name() + "/bitdepth", BIT_DEPTH[asic_counter_depth_]);
     status.set_param(get_name() + "/packets_lost", total_packets_lost_);
   }

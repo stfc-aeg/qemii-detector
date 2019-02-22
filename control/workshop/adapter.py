@@ -268,8 +268,8 @@ class Workshop():
         before adding itself as a callback to the IOLoop instance to be called again.
 
         """
-        if self.background_task_counter < 10 or self.background_task_counter % 20 == 0:
-            logging.debug("Background task running, count = %d", self.background_task_counter)
+        #if self.background_task_counter < 10 or self.background_task_counter % 20 == 0:
+            #logging.debug("Background task running, count = %d", self.background_task_counter)
 
         self.background_task_counter += 1
         time.sleep(self.background_task_interval)
