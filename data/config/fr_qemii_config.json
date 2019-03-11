@@ -1,0 +1,15 @@
+[
+    {
+        "decoder_type": "Qemii",
+        "decoder_path": "./lib",
+        "rx_ports": "51501",
+        "max_buffer_mem": 840000000,
+        "decoder_config": {
+          "enable_packet_logging": false,
+          "frame_timeout_ms": 1000,
+          "fem_port_map": "51501:0",
+          "bitdepth": "16-bit"
+        }
+      }
+
+]

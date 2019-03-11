@@ -1,0 +1,84 @@
+{
+    "receiver_default_config":
+    {
+      "decoder_type": "Qemii",
+      "decoder_path": "./lib",
+      "rx_ports": "51501",
+      "max_buffer_mem": 840000000,
+      "decoder_config": {
+        "enable_packet_logging": false,
+        "frame_timeout_ms": 1000,
+        "fem_port_map": "51501:0",
+        "bitdepth": "16-bit"
+      }
+    },
+    "processor_default_config":
+    {
+      "fr_setup": {
+        "fr_ready_cnxn": "tcp://127.0.0.1:5001",
+        "fr_release_cnxn": "tcp://127.0.0.1:5002"
+      }, 
+      "qemii": 
+      {
+        "width": 288,
+        "height": 102
+      },
+      "hdf": 
+      {
+        "frames": 1000,
+        "dataset": 
+        {
+          "data" : 
+          {
+            "cmd": "create",
+            "datatype": 1,
+            "dims": [102, 288]                
+          },
+          "test" : 
+          {
+            "cmd": "create",
+            "datatype": 1,
+            "dims": [102, 288]                
+          }
+        }
+      }
+    },
+    "processor_plugins":
+    [
+        {  
+            "plugin": {
+                "load": {
+                    "index": "hdf",
+                    "name": "FileWriterPlugin",
+                    "library": "/aeg_sw/work/projects/qem/qem-ii/install/lib/libHdf5Plugin.so"
+                }
+            }
+        },
+        {
+            "plugin": {
+                "load": {
+                    "index": "qemii",
+                    "name": "QemiiProcessPlugin",
+                    "library": "/aeg_sw/work/projects/qem/qem-ii/install/lib/libQemiiProcessPlugin.so"
+                }
+            }
+        },
+        {
+            "plugin": {
+                "connect": {
+                    "index": "qemii",
+                    "connection": "frame_receiver"
+                }
+            }
+        },
+                {
+            "plugin": {
+                "connect": {
+                    "index": "hdf",
+                    "connection": "qemii"
+                }
+            }
+        }
+       
+    ]
+}    
