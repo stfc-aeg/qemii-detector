@@ -27,7 +27,7 @@ function update_api_adapters() {
 
 function load_fp_config_file(){
 
-    $.getJSON('/api/' + api_version + '/workshop/fp_config_files', function(response) {
+    $.getJSON('/api/' + api_version + '/file_interface/fp_config_files', function(response) {
         var ul = $('#fp_file_list');
         ul.empty();
         var list = response.fp_config_files;
@@ -47,7 +47,7 @@ function load_fp_config_file(){
 
 function load_fr_config_file(){
 
-    $.getJSON('/api/' + api_version + '/workshop/fr_config_files', function(response) {
+    $.getJSON('/api/' + api_version + '/file_interface/fr_config_files', function(response) {
         var ul = $('#fr_file_list');
         ul.empty();
         var list = response.fr_config_files;
@@ -227,6 +227,8 @@ var LiveViewApp = (function()
         size_slider = $("#size_range").slider({}).on('slideStop', changeSizeEvent);
         size_slider.slider(!autosize_enable ? "enable" : "disable");
 
+
+        size_slider.slider('setAttribute', 'max', 200);
         // Retrieve API data and populate controls
         $.getJSON(api_url, function (response)
         {
