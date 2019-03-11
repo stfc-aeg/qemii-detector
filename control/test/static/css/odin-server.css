@@ -17,6 +17,11 @@ body {
 
     width: 100%;
     text-align: center;
+    margin-top: 5px;
+}
+
+.btn-group{
+    margin: 5px;
 }
 
 #input-div{

@@ -7,7 +7,7 @@ import versioneer
 with open('requirements.txt') as f:
     required = f.read().splitlines()
 
-setup(name='workshop',
+setup(name='FileInterface',
       version=versioneer.get_version(),
       cmdclass=versioneer.get_cmdclass(),
       description='ODIN Workshop',

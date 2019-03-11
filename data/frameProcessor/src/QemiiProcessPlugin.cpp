@@ -276,7 +276,9 @@ namespace FrameProcessor
 
     the_frame->set_frame_number(frame_header_ptr->frame_number);
     the_frame->set_dimensions(dimensions);
+    the_frame->set_data_type(1);
     the_frame->copy_data(frame_data, image_size);
+  
 
     LOG4CXX_TRACE(logger_, "Pushing data frame.");
     this->push(the_frame);
