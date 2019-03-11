@@ -89,31 +89,7 @@ namespace FrameProcessor
     {
       std::string bit_depth_str =
           config.get_param<std::string>(QemiiProcessPlugin::CONFIG_ASIC_COUNTER_DEPTH);
-      /*
-      if (bit_depth_str == BIT_DEPTH[DEPTH_1_BIT])
-      {
-        asic_counter_depth_ = DEPTH_1_BIT;
-      }
-      else if (bit_depth_str == BIT_DEPTH[DEPTH_6_BIT])
-      {
-        asic_counter_depth_ = DEPTH_6_BIT;
-      }
-      else if (bit_depth_str == BIT_DEPTH[DEPTH_12_BIT])
-      {
-        asic_counter_depth_ = DEPTH_12_BIT;
-      }
-      else if (bit_depth_str == BIT_DEPTH[DEPTH_24_BIT])
-      {
-        asic_counter_depth_ = DEPTH_24_BIT;
-      }
-      else
-      {
-        std::stringstream ss;
-        ss << "Invalid bit depth requested: " << bit_depth_str;
-        LOG4CXX_ERROR(logger_, "Invalid bit depth requested: " << bit_depth_str);
-        throw std::runtime_error("Invalid bit depth requested");
-      }
-      */
+
     }
 
     else{
