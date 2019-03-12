@@ -89,31 +89,7 @@ namespace FrameProcessor
     {
       std::string bit_depth_str =
           config.get_param<std::string>(QemiiProcessPlugin::CONFIG_ASIC_COUNTER_DEPTH);
-      /*
-      if (bit_depth_str == BIT_DEPTH[DEPTH_1_BIT])
-      {
-        asic_counter_depth_ = DEPTH_1_BIT;
-      }
-      else if (bit_depth_str == BIT_DEPTH[DEPTH_6_BIT])
-      {
-        asic_counter_depth_ = DEPTH_6_BIT;
-      }
-      else if (bit_depth_str == BIT_DEPTH[DEPTH_12_BIT])
-      {
-        asic_counter_depth_ = DEPTH_12_BIT;
-      }
-      else if (bit_depth_str == BIT_DEPTH[DEPTH_24_BIT])
-      {
-        asic_counter_depth_ = DEPTH_24_BIT;
-      }
-      else
-      {
-        std::stringstream ss;
-        ss << "Invalid bit depth requested: " << bit_depth_str;
-        LOG4CXX_ERROR(logger_, "Invalid bit depth requested: " << bit_depth_str);
-        throw std::runtime_error("Invalid bit depth requested");
-      }
-      */
+
     }
 
     else{
@@ -145,7 +121,7 @@ namespace FrameProcessor
   void QemiiProcessPlugin::status(OdinData::IpcMessage& status)
   {
     // Record the plugin's status items
-    LOG4CXX_INFO(logger_, "Status requested for Qemii plugin");
+    //LOG4CXX_INFO(logger_, "Status requested for Qemii plugin");
     status.set_param(get_name() + "/bitdepth", BIT_DEPTH[asic_counter_depth_]);
     status.set_param(get_name() + "/packets_lost", total_packets_lost_);
   }
@@ -276,7 +252,9 @@ namespace FrameProcessor
 
     the_frame->set_frame_number(frame_header_ptr->frame_number);
     the_frame->set_dimensions(dimensions);
+    the_frame->set_data_type(1);
     the_frame->copy_data(frame_data, image_size);
+  
 
     LOG4CXX_TRACE(logger_, "Pushing data frame.");
     this->push(the_frame);

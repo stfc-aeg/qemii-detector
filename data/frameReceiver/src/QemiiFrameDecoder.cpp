@@ -217,15 +217,15 @@ void QemiiFrameDecoder::process_packet_header (size_t bytes_received, int port,
   // Only handle the packet header and frame logic further if this packet is not being ignored
   if (current_packet_fem_map_.fem_idx_ != ILLEGAL_FEM_IDX)
   {
-    if (frame_number != current_frame_seen_)
+    if (frame_number != current_frame_seen_) //if this is a packet from a new frame
     {
       current_frame_seen_ = frame_number;
 
-      if (frame_buffer_map_.count(current_frame_seen_) == 0)
+      if (frame_buffer_map_.count(current_frame_seen_) == 0) // if this frame doesn't have a buffer allocated
       {
-        if (empty_buffer_queue_.empty())
+        if (empty_buffer_queue_.empty())// if there's no space on the buffer queue
         {
-          current_frame_buffer_ = dropped_frame_buffer_.get();
+          current_frame_buffer_ = dropped_frame_buffer_.get(); // use the droppped frame buffer
 
           if (!dropping_frame_data_)
           {
@@ -236,9 +236,10 @@ void QemiiFrameDecoder::process_packet_header (size_t bytes_received, int port,
         }
         else
         {
-
+          // allocate a buffer for the frame
           current_frame_buffer_id_ = empty_buffer_queue_.front();
           empty_buffer_queue_.pop();
+          //create an entry in the frame buffer map for this frame id
           frame_buffer_map_[current_frame_seen_] = current_frame_buffer_id_;
           current_frame_buffer_ = buffer_manager_->get_buffer_address(current_frame_buffer_id_);
 
@@ -260,16 +261,18 @@ void QemiiFrameDecoder::process_packet_header (size_t bytes_received, int port,
         current_frame_header_ = reinterpret_cast<Qemii::FrameHeader*>(current_frame_buffer_);
         initialise_frame_header(current_frame_header_);
 
-      }
+      }// if this frame hasn't been seen in in the frame buffer map
       else
       {
+        //frame is already in the frame buffer map
         current_frame_buffer_id_ = frame_buffer_map_[current_frame_seen_];
         current_frame_buffer_ = buffer_manager_->get_buffer_address(current_frame_buffer_id_);
         current_frame_header_ = reinterpret_cast<Qemii::FrameHeader*>(current_frame_buffer_);
       }
 
-    }
+    }//if frame number != current frame
 
+    //still processing packets from the same frame.
     Qemii::FemReceiveState* fem_rx_state =
         &(current_frame_header_->fem_rx_state[current_packet_fem_map_.buf_idx_]);
 
@@ -287,7 +290,7 @@ void QemiiFrameDecoder::process_packet_header (size_t bytes_received, int port,
 
     // Update packet_number state map in frame header
     fem_rx_state->packet_state[packet_number] = 1;
-  }
+  }// illegal fem ID - don't process.
 
 }
 
