@@ -117,4 +117,3 @@ class QemFem():
 
     Controls and configures each FEM-II module ready for a DAQ via UDP.
     """
-    pass
