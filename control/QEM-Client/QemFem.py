@@ -1,7 +1,4 @@
-""" Qem FEM Adapter for QEM FEM's
-
-Adapter to communicate with a single FEM module, controlling them via UDP.
-Sets up each FEM for a DAQ.  
+""" QemFem
 
 Sophie Kirkham, Application Engineering Group, STFC. 2019
 """
@@ -10,7 +7,6 @@ import tornado
 import time
 from concurrent import futures
 import os 
-
 from tornado.ioloop import IOLoop
 from tornado.concurrent import run_on_executor
 from tornado.escape import json_decode
@@ -36,6 +32,7 @@ class QemFem():
         self.port = port
         self.id = id
         self.state = FREE
+        self.x10g_rdma = None
 
     def get_address(self):
         return self.ip_address
@@ -48,6 +45,27 @@ class QemFem():
 
     def get_state(self):
         return self.state
+
+    def setup_camera(self):
+
+        self.set_ifg()
+        #self.set_clock() wasn't implemented in QEM-I
+        self.turn_rdma_debug_0ff()
+        self..set_10g_mtu('data', 8000)
+        self.x10g_rdma.read(0x0000000C, '10G_0 MTU')
+        # N.B. for scrambled data 10, 11, 12, 13 bit raw=> column size 360, 396
+        self.set_10g_mtu('data', 7344)
+        self.set_image_size_2(102,288,11,16)
+        #set idelay in 1 of 32 80fs steps  - d1, d0, c1, c0
+        self.set_idelay(0,0,0,0)
+        time.sleep(1)
+        locked = self.get_idelay_lock_status()
+        # set sub cycle shift register delay in 1 of 8 data clock steps - d1, d0, c1, c0
+        # set shift register delay in 1 of 16 divide by 8 clock steps - d1, d0, c1, c0
+        #
+        # Shift 72 + 144 bits
+        self.set_scsr(7,7,7,7)		# sub-cycle (1 bit)
+        self.set_ivsr(0,0,27,27)		# cycle (8 bits)
 
     #Rob Halsall Code#
     
