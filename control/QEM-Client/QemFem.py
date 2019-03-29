@@ -10,7 +10,10 @@ import os
 from tornado.ioloop import IOLoop
 from tornado.concurrent import run_on_executor
 from tornado.escape import json_decode
+from RdmaUDP import RdmaUDP
 
+BUSY = 1
+FREE = 0 
 
 class QemFemError(Exception):
     """Simple exception class for PSCUData to wrap lower-level exceptions."""
@@ -22,17 +25,50 @@ class QemFem():
 
     Controls and configures each FEM-II module ready for a DAQ via UDP.
     """
-
-    BUSY = 1
-    FREE = 0 
     
-    def __init__(self, ip_address, port, id):
+    def __init__(self, ip_address, port, id, server_ctrl_ip_addr, camera_ctrl_ip_addr):
 
         self.ip_address = ip_address
         self.port = port
         self.id = id
         self.state = FREE
         self.x10g_rdma = None
+        self.server_ctrl_ip_addr = server_ctrl_ip_addr
+        self.camera_ctrl_ip_addr = camera_ctrl_ip_addr
+
+
+        # qem 1 base addresses
+        self.udp_10G_data    = 0x00000000
+        self.udp_10g_control = 0x10000000
+        self.frame_gen_0     = 0x20000000
+        self.frm_chk_0       = 0x30000000
+        self.frm_gen_1       = 0x40000000
+        self.frm_chk_1       = 0x50000000
+        self.top_reg         = 0x60000000
+        self.mon_data_in     = 0x70000000
+        self.mon_data_out    = 0x80000000
+        self.mon_rdma_in     = 0x90000000
+        self.mon_rdma_out    = 0xA0000000
+        self.sequencer       = 0xB0000000
+        self.receiver        = 0xC0000000
+        self.frm_gate        = 0xD0000000
+        self.Unused_0        = 0xE0000000
+        self.Unused_1        = 0xF0000000
+        #
+        self.image_size_x    = 0x100
+        self.image_size_y    = 0x100
+        self.image_size_p    = 0x8
+        self.image_size_f    = 0x8
+
+        self.pixel_extract   = [16,13,12,11]
+        #
+        self.debug_level = -1
+        self.delay = 0
+        self.strm_mtu = 8000
+        self.rdma_mtu = 8000
+        #
+        self.frame_time = 1
+
 
     def get_address(self):
         return self.ip_address
@@ -51,7 +87,7 @@ class QemFem():
         self.set_ifg()
         #self.set_clock() wasn't implemented in QEM-I
         self.turn_rdma_debug_0ff()
-        self..set_10g_mtu('data', 8000)
+        self.set_10g_mtu('data', 8000)
         self.x10g_rdma.read(0x0000000C, '10G_0 MTU')
         # N.B. for scrambled data 10, 11, 12, 13 bit raw=> column size 360, 396
         self.set_10g_mtu('data', 7344)
@@ -70,6 +106,7 @@ class QemFem():
     #Rob Halsall Code#
     
     def connect(self):
+        #must be called as first method after instatiating class.
         self.x10g_rdma = RdmaUDP(self.server_ctrl_ip_addr, 61650, self.server_ctrl_ip_addr,61651, self.camera_ctrl_ip_addr, 61650, self.camera_ctrl_ip_addr,61651,2000000,9000,20)
         self.x10g_rdma.setDebug(False)
         self.x10g_rdma.ack = True
