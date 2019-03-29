@@ -1,7 +1,7 @@
 """ Qem Detector Adapter for QEM Detector System.
 
 Main control layer for the entire qem detector system.
-Intelligent adapter that can communicate to all other loaded adapters lower down in the heirarchy. 
+Intelligent adapter that can communicate to all other loaded adapters lower down in the heirarchy.
 Bridges the gap between generic UI commands and detector specific business logic.
 
 Sophie Kirkham, Application Engineering Group, STFC. 2019
@@ -10,19 +10,23 @@ import logging
 import tornado
 import time
 from concurrent import futures
-import os 
+import os
 
 from tornado.ioloop import IOLoop
-from tornado.concurrent import run_on_executor
 from tornado.escape import json_decode
 
 from odin.adapters.adapter import ApiAdapter, ApiAdapterResponse, request_types, response_types
 from odin.adapters.parameter_tree import ParameterTree, ParameterTreeError
 from odin._version import get_versions
 
+from QemCalibrator import QemCalibrator
+
 
 class QemDetectorAdapter(ApiAdapter):
-    """
+    """Top Level Adapter for the QEM Control system.
+
+    Provides access to all the sub sections that compose a working Qem Dectector System.
+    It has access to the other adapters loaded, and thus can sequence required commands.
     """
 
     def __init__(self, **kwargs):
@@ -34,7 +38,7 @@ class QemDetectorAdapter(ApiAdapter):
         """
         # Intialise superclass
         super(QemDetectorAdapter, self).__init__(**kwargs)
-        self.qemDetector = QemDetector()
+        self.qem_detector = QemDetector()
         logging.debug('QemDetector Adapter loaded')
 
     @response_types('application/json', default='application/json')
@@ -48,7 +52,7 @@ class QemDetectorAdapter(ApiAdapter):
         :return: an ApiAdapterResponse object containing the appropriate response
         """
         try:
-            response = self.qemDetector.get(path)
+            response = self.qem_detector.get(path)
             status_code = 200
         except ParameterTreeError as e:
             response = {'error': str(e)}
@@ -75,8 +79,8 @@ class QemDetectorAdapter(ApiAdapter):
 
         try:
             data = json_decode(request.body)
-            self.qemDetector.set(path, data)
-            response = self.qemDetector.get(path)
+            self.qem_detector.set(path, data)
+            response = self.qem_detector.get(path)
             status_code = 200
         except QemDetectorError as e:
             response = {'error': str(e)}
@@ -106,6 +110,11 @@ class QemDetectorAdapter(ApiAdapter):
 
         return ApiAdapterResponse(response, status_code=status_code)
 
+    def initialize(self, adapters):
+        # get references to required adapters
+        # pass those references to the classes that need to use em
+        pass
+
 
 class QemDetectorError(Exception):
     """Simple exception class for PSCUData to wrap lower-level exceptions."""
@@ -114,11 +123,32 @@ class QemDetectorError(Exception):
 
 
 class QemDetector():
-    """ QemDetector object representing the entire QEM Detector System. 
+    """ QemDetector object representing the entire QEM Detector System.
 
-    Intelligent control plane that can sequence events across the subsystems lower down in the hierarchy to 
-    perform DAQ, calibration runs and other generic control functions on the entire detector system 
-    (FEM-II's, Backplane, Data Path Packages etc.)
-
+    Intelligent control plane that can sequence events across the subsystems lower down in the
+    hierarchy to perform DAQ, calibration runs and other generic control functions on the entire
+    detector system (FEM-II's, Backplane, Data Path Packages etc.)
     """
-    pass
+
+    def __init__(self):
+        self.daq = QemDAQ()
+        self.vector_file = None
+        self.calibrator = QemCalibrator(0, "")
+
+    def get(self, path):
+        pass
+
+    def set(self, path, data):
+        pass
+
+
+class QemDAQ():
+    """Encapsulates all the functionaility to initiate the DAQ.
+
+    Configures the Frame Receiver and Frame Processor plugins
+    Configures the HDF File Writer Plugin
+    Configures the Live View Plugin
+    """
+
+    def __init__(self):
+        pass
