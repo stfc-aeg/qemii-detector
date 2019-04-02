@@ -115,7 +115,28 @@ class BackplaneError(Exception):
 class Backplane():
     """ Backplane object, representing a single Backplane module.
 
-    Facilitates communication to the underlying hardware resources 
+    Facilitates communication to the underlying hardware resources
     onbaord the Backplane.
     """
-    pass
+
+    def __init__(self):
+        self.resistor_1 = 5
+        self.resistor_2 = 10
+        self.param_tree = ParameterTree({
+            "resistors": {
+                "resistor_1": self.resistor_1,
+                "resistor_2": self.resistor_2
+            }
+        })
+
+    def get(self, path):
+        return self.param_tree.get(path)
+
+    def set(self, path, data):
+        return self.param_tree.set(path, data)
+
+    def get_resistor_1(self):
+        return self.resistor_1
+
+    def set_resistor_1(self, value):
+        self.resistor_1 = value
