@@ -18,7 +18,7 @@ import h5py
 # import numpy as np
 import matplotlib
 matplotlib.use('Agg')
-# import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 # from matplotlib.ticker import MaxNLocator
 
 # from concurrent import futures
@@ -30,15 +30,18 @@ class QemCalibrator():
     """Encapsulates the functionality required to initiate ADC calibration of the sensor
     """
 
-    def __init__(self, coarse_calibration_value, data_dir):
+    def __init__(self, coarse_calibration_value, data_dir, fems):
         self.calibration_complete = False
         self.plot_complete = False
         self.coarse_calibration_value = coarse_calibration_value
         self.data_dir = data_dir
+        self.qem_fems = fems
 
     def initialize(self, adapters):
         """Receives references to the other adapters needed for calibration
         """
+        self.backplane_adapter = adapters["backplane"]  # TODO: Probs not the right way
+        self.odin_data_adapter = adapters["odin_data"]
         pass
 
     def get_cal_complete(self):
@@ -152,28 +155,29 @@ class QemCalibrator():
         if calibrate == "true":
             self.set_cal_complete(False)
 
-            self.setup_camera()  # qem fem reference
+            for fem in self.qem_fems:
+                fem.setup_camera()  # qem fem reference
             time.sleep(0.1)
-            self.qemcamera.get_aligner_status()  # qem fem reference
-            locked = self.qemcamera.get_idelay_lock_status()  # qem fem reference
-            print "%-32s %-8X" % ('-> idelay locked:', locked)
+            for fem in self.qem_fems:
+                fem.get_aligner_status()  # qem fem reference
+                locked = fem.get_idelay_lock_status()  # qem fem reference
+                print "%-32s %-8X" % ('-> idelay locked:', locked)
             print "%-32s" % ('-> Calibration started ...')
 
             # define number of sweep
             n = 4096  # changed from 1024
             # define i and the starting point of the capture
             i = 0
-            self.backplane.set_resistor_register(6, 4095)  # setting AUXSAMPLE FINE to 0
+            self.backplane_adapter.set_resistor_register(6, 4095)  # setting AUXSAMPLE FINE to 0
 
             # MAIN loop to capture data
             while i < n:
                 # set AUXSAMPLE_COARSE to i
-                self.backplane.set_resistor_register(7, i)
+                self.backplane_adapter.set_resistor_register(7, i)
                 # delay 0 seconds (default) or by number passed to the function
                 time.sleep(delay)
                 # Save the captured data to here using RAH function
-                self.qemcamera.log_image_stream(
-                    self.data_dir + 'coarse/adc_cal_AUXSAMPLE_COARSE_%04d' % i, frames)  # odin data
+                self.qemcamera.log_image_stream(self.data_dir + 'coarse/adc_cal_AUXSAMPLE_COARSE_%04d' % i, frames)  # odin data
                 i = i+1
 
             time.sleep(1)
@@ -200,12 +204,15 @@ class QemCalibrator():
             print(delay)
             print(frames)
             self.set_cal_complete(False)
-            self.setup_camera()
+            for fem in self.qem_fems:
+                fem.setup_camera()  # qem fem reference
 
             time.sleep(0.1)
-            self.qemcamera.get_aligner_status()  # qem fem
-            locked = self.qemcamera.get_idelay_lock_status()  # qem fem
-            print "%-32s %-8X" % ('-> idelay locked:', locked)
+
+            for fem in self.qem_fems:
+                fem.get_aligner_status()  # qem fem reference
+                locked = fem.get_idelay_lock_status()  # qem fem reference
+                print "%-32s %-8X" % ('-> idelay locked:', locked)
             print "%-32s" % ('-> Calibration started ...')
 
             # define the number of loops for the adc calibration
@@ -213,12 +220,12 @@ class QemCalibrator():
             # define i and the staring point
             i = 0
             # set the default starting point for the COARSE value
-            self.backplane.set_resistor_register(7, 728)  # 435
+            self.backplane_adapter.set_resistor_register(7, 728)  # 435
 
             # main loop to capture the data
             while i < n:
                 # set the the AUXSAMPLE_FINE resistor to i
-                self.backplane.set_resistor_register(6, i)
+                self.backplane_adapter.set_resistor_register(6, i)
                 # delay by 0 (default) or by the number passed to the function
                 time.sleep(delay)
                 # capture the data from the stream using rah function

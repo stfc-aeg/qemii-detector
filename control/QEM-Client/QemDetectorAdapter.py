@@ -20,6 +20,7 @@ from odin.adapters.parameter_tree import ParameterTree, ParameterTreeError
 from odin._version import get_versions
 
 from QemCalibrator import QemCalibrator
+from QemFem import QemFem
 
 
 class QemDetectorAdapter(ApiAdapter):
@@ -113,7 +114,7 @@ class QemDetectorAdapter(ApiAdapter):
     def initialize(self, adapters):
         # get references to required adapters
         # pass those references to the classes that need to use em
-        pass
+        self.qem_detector.calibrator.initialize(adapters)
 
 
 class QemDetectorError(Exception):
@@ -133,7 +134,8 @@ class QemDetector():
     def __init__(self):
         self.daq = QemDAQ()
         self.vector_file = None
-        self.calibrator = QemCalibrator(0, "")
+        fems = [QemFem(ip_address="127.0.0.1", port="8888", id=0, server_ctrl_ip_addr="localhost", camera_ctrl_ip_addr="localhost")]
+        self.calibrator = QemCalibrator(0, "", fems)
 
     def get(self, path):
         pass
