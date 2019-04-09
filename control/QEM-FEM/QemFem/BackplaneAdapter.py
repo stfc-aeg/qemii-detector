@@ -8,6 +8,7 @@ Sophie Kirkham, Application Engineering Group, STFC. 2019
 import logging
 import tornado
 import time
+import math
 from concurrent import futures
 import os 
 
@@ -18,6 +19,18 @@ from tornado.escape import json_decode
 from odin.adapters.adapter import ApiAdapter, ApiAdapterResponse, request_types, response_types
 from odin.adapters.parameter_tree import ParameterTree, ParameterTreeError
 from odin._version import get_versions
+
+from i2c_device import I2CDevice, I2CException
+from i2c_container import I2CContainer
+
+from tca9548 import TCA9548
+from ad5272 import AD5272
+from mcp23008 import MCP23008
+from tpl0102 import TPL0102
+from si570 import SI570
+from ad7998 import AD7998
+#from gpio_reset import GPIOReset
+from ad5694 import AD5694
 
 
 class BackplaneAdapter(ApiAdapter):
@@ -33,8 +46,16 @@ class BackplaneAdapter(ApiAdapter):
         """
         # Intialise superclass
         super(BackplaneAdapter, self).__init__(**kwargs)
+
         self.backplane = Backplane()
+
         logging.debug('Backplane Adapter loaded')
+
+        # Retrieve adapter options from incoming argument list
+        self.update_interval = float(1.0)
+
+        # Start the update loop
+        self.update_loop()
 
     @response_types('application/json', default='application/json')
     def get(self, path, request):
@@ -104,6 +125,18 @@ class BackplaneAdapter(ApiAdapter):
         logging.debug(response)
 
         return ApiAdapterResponse(response, status_code=status_code)
+    
+    def update_loop(self):
+        """Handle background update loop tasks.
+        This method polls the sensors in the background and is executed periodically in the tornado
+        IOLoop instance.
+        """
+        # Handle background tasks
+        self.backplane.poll_all_sensors()
+
+        # Schedule the update loop to run in the IOLoop instance again after appropriate
+        # interval
+        IOLoop.instance().call_later(self.update_interval, self.update_loop)
 
 
 class BackplaneError(Exception):
@@ -118,16 +151,62 @@ class Backplane():
     Facilitates communication to the underlying hardware resources
     onbaord the Backplane.
     """
-
+    
     def __init__(self):
-        self.resistor_1 = 5
-        self.resistor_2 = 10
-        self.param_tree = ParameterTree({
-            "resistors": {
-                "resistor_1": self.resistor_1,
-                "resistor_2": self.resistor_2
-            }
-        })
+        #signal.signal(signal.SIGALRM, self.connect_handler)
+        #signal.alarm(6)
+        try:
+            self.resistor_1 = 5
+            self.resistor_2 = 30
+            self.voltages = [0.0] * 13
+            self.voltages_raw = [0.0] * 13
+            self.voltChannelLookup = ((0,2,3,4,5,6,7),(0,2,4,5,6,7))
+            self.names = ["VDD0", "VDD_D18", "VDD_D25", "VDD_P18", "VDD_A18_PLL", "VDD_D18ADC", "VDD_D18_PLL", "VDD_RST", "VDD_A33", "VDD_D33", "VCTRL_NEG", "VRESET", "VCTRL_POS"]
+            self.currents = [0.0] * 15
+            self.currents_raw = [0.0] * 15
+            self.cunits = ["mA", "mA", "mA", "mA", "mA", "mA", "mA", "mA", "mA", "mA", "mA", "mA", "mA"]
+            self.vunits = ["V", "V", "V", "V", "V", "V", "V", "V", "V", "V", "V", "V", "V"]
+            
+
+            self.MONITOR_RESISTANCE = [2.5, 1, 1, 1, 10, 1, 10, 1, 1, 1, 10, 1, 10]
+            """this list defines the resistance of the current-monitoring resistor in the circuit multiplied by 100 (for the amplifier)"""
+
+            self.param_tree = ParameterTree({
+                "resistors": {
+                    "resistor_1": (self.get_resistor_1, self.set_resistor_1),
+                    "resistor_2": self.resistor_2
+                },
+                "voltages": {
+                    "voltage": (self.get_voltages, None),
+                    "register": (self.get_vraw, None),
+                    "units": (self.get_vunits, None)
+                },
+                "currents": {
+                    "current": (self.get_currents, None),
+                    "register": (self.get_craw, None),
+                    "units": (self.get_cunits, None)
+                }
+            })
+
+            self.update = True
+            self.tca = TCA9548(0x70, busnum=1)
+            self.tpl0102 = []
+            for i in range(4): # was 5 but removed last one (0x54)
+                self.tpl0102.append(self.tca.attach_device(0, TPL0102, 0x50 + i, busnum=1))
+            
+            # attach the ADC devices
+            self.ad7998 = []
+            for i in range(4):
+                self.ad7998.append(self.tca.attach_device(2, AD7998, 0x21 + i, busnum=1))
+        
+        except Exception, exc:
+            if exc == 13:
+                logging.error("I2C Communications not enabled for user. Try 'su -;chmod 666 /dev/i2c-1'")
+            else:
+                logging.error(exc)
+                sys.exit(0)    
+
+            
 
     def get(self, path):
         return self.param_tree.get(path)
@@ -140,3 +219,62 @@ class Backplane():
 
     def set_resistor_1(self, value):
         self.resistor_1 = value
+
+    def poll_all_sensors(self):
+        """This will do something amazing one day"""
+        
+        self.resistor_1 = int(self.resistor_1 + 1)
+
+        if self.update == True:
+            self.update_voltages()
+            self.update_currents()
+            # print("update, now %d" %self.resistor_1)
+
+
+
+    def get_voltages(self):
+        return dict(zip(self.names, self.voltages))
+
+    def get_vraw(self):
+        return dict(zip(self.names, self.voltages_raw))
+    
+    def get_vunits(self):
+        return dict(zip(self.names, self.vunits))
+
+    def get_currents(self):
+        return dict(zip(self.names, self.currents))
+
+    def get_craw(self):
+        return dict(zip(self.names, self.currents_raw))
+    
+    def get_cunits(self):
+        return dict(zip(self.names, self.cunits))
+
+    
+    def update_voltages(self):
+        #Voltages
+        for i in range(7):
+            j = self.voltChannelLookup[0][i]
+            self.voltages_raw[i] = self.ad7998[1].read_input_raw(j) & 0xfff
+            self.voltages[i] = self.voltages_raw[i] * 3 / 4095.0
+        for i in range(6):
+            j = self.voltChannelLookup[1][i]
+            self.voltages_raw[i + 7] = self.ad7998[3].read_input_raw(j) & 0xfff
+            self.voltages[i + 7] = self.voltages_raw[i + 7] * 5 / 4095.0
+    
+    def update_currents(self):
+        #Currents
+        for i in range(7):
+            j = self.voltChannelLookup[0][i]
+            self.currents_raw[i] = (self.ad7998[0].read_input_raw(j) & 0xfff)
+            self.currents[i] = self.currents_raw[i] / self.MONITOR_RESISTANCE[i] * 5000 / 4095.0
+
+        for i in range(6):
+            j = self.voltChannelLookup[1][i]
+            self.currents_raw[i + 7] = (self.ad7998[2].read_input_raw(j) & 0xfff)
+            self.currents[i + 7] = self.currents_raw[i + 7] / self.MONITOR_RESISTANCE[i + 7] * 5000 / 4095.0
+        
+
+
+
+
