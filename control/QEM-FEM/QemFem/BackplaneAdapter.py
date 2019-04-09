@@ -166,26 +166,66 @@ class Backplane():
             self.currents_raw = [0.0] * 15
             self.cunits = ["mA", "mA", "mA", "mA", "mA", "mA", "mA", "mA", "mA", "mA", "mA", "mA", "mA"]
             self.vunits = ["V", "V", "V", "V", "V", "V", "V", "V", "V", "V", "V", "V", "V"]
-            
 
             self.MONITOR_RESISTANCE = [2.5, 1, 1, 1, 10, 1, 10, 1, 1, 1, 10, 1, 10]
             """this list defines the resistance of the current-monitoring resistor in the circuit multiplied by 100 (for the amplifier)"""
 
-            self.param_tree = ParameterTree({
-                "resistors": {
-                    "resistor_1": (self.get_resistor_1, self.set_resistor_1),
-                    "resistor_2": self.resistor_2
-                },
-                "voltages": {
-                    "voltage": (self.get_voltages, None),
-                    "register": (self.get_vraw, None),
-                    "units": (self.get_vunits, None)
-                },
-                "currents": {
-                    "current": (self.get_currents, None),
-                    "register": (self.get_craw, None),
-                    "units": (self.get_cunits, None)
+            resistor_tree = ParameterTree({
+                "name": "Resistors",
+                "description": "Resistors on the Backplane.",
+                "resistor_1": (self.get_resistor_1, self.set_resistor_1, {
+                    "name": "resistor 1",
+                    "description": "Fake resistor Value for testing"
+                }),
+                "resistor_2": (self.resistor_2, {
+                    "name": "resistor 2",
+                    "description": "Fale Resistor Value for Testing"
+                })
+            })
+
+            voltage_dict = {
+                "name": "Voltages",
+                "description": "Voltages on the backplane."
+            }
+
+            current_dict = {
+                "name": "Currents",
+                "description": "Currents on the backplane."
+            }
+
+            for index, name in enumerate(self.names):
+                voltage = {
+                    "voltage": (lambda: self.voltages[index], None, {
+                        "name": "Voltage",
+                        "description": "Actual Voltage from the backplane",
+                        "units": self.vunits[index]
+                    }),
+                    "register": (lambda: self.voltages_raw[index], None, {
+                        "name": "Register",
+                        "description": "Raw register value from the backplane"
+                    })
                 }
+                current = {
+                    "current": (lambda: self.currents[index], None, {
+                        "name": "Current",
+                        "description": "Actual Current from the backplane",
+                        "units": self.cunits[index]
+                    }),
+                    "register": (lambda: self.currents_raw[index], None, {
+                        "name": "Register",
+                        "description": "Raw register value from the backplane"
+                    })
+                }
+                voltage_dict[name] = voltage
+                current_dict[name] = current
+
+            voltage_tree = ParameterTree(voltage_dict)
+            current_tree = ParameterTree(current_dict)
+
+            self.param_tree = ParameterTree({
+                "resistors": resistor_tree,
+                "voltages": voltage_tree,
+                "currents": current_tree
             })
 
             self.update = True
@@ -204,7 +244,7 @@ class Backplane():
                 logging.error("I2C Communications not enabled for user. Try 'su -;chmod 666 /dev/i2c-1'")
             else:
                 logging.error(exc)
-                sys.exit(0)    
+                # sys.exit(0)    
 
             
 
