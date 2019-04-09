@@ -11,8 +11,8 @@ $( document ).ready(function() {
 function update_api_version() {
 
     $.getJSON('/api', function(response) {
-        $('#api-version').html(response.api_version);
-        api_version = response.api_version;
+        $('#api-version').html(response.api);
+        api_version = response.api;
     });
 }
 
@@ -73,7 +73,7 @@ function set_fp_file(){
         type: "PUT",
         url: '/api/' + api_version + '/fp/config/config_file',
         contentType: "application/json",
-        data: JSON.stringify("/aeg_sw/work/projects/qem/qem-ii/install/config/" + file)
+        data: JSON.stringify("/u/wbd45595/develop/projects/qemii/qemii-detector/data/config/" + file)
     });
     
 }
@@ -84,7 +84,7 @@ function set_fr_file(){
         type: "PUT",
         url: '/api/' + api_version + '/fr/config/config_file',
         contentType: "application/json",
-        data: JSON.stringify("/aeg_sw/work/projects/qem/qem-ii/install/config/" + file)
+        data: JSON.stringify("/u/wbd45595/develop/projects/qemii/qemii-detector/data/config/" + file)
     });
 }
 

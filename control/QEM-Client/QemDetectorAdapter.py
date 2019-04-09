@@ -5,6 +5,7 @@ Intelligent adapter that can communicate to all other loaded adapters lower down
 Bridges the gap between generic UI commands and detector specific business logic.
 
 Sophie Kirkham, Application Engineering Group, STFC. 2019
+Adam Neaves, Application Engineering Group, STFC. 2019
 """
 import logging
 import tornado

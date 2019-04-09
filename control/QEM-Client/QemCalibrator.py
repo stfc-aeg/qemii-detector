@@ -7,6 +7,7 @@ Adam Neaves, Application Engineering Group, STFC. 2019
 """
 
 import time
+import logging
 import glob
 # import os
 from tornado.concurrent import run_on_executor
@@ -24,6 +25,9 @@ import matplotlib.pyplot as plt
 # from concurrent import futures
 
 # from QemCam import *
+from odin.adapters.adapter import ApiAdapter, ApiAdapterResponse, ApiAdapterRequest, request_types, response_types
+from odin.adapters.proxy import ProxyAdapter
+from odin_data.odin_data_adapter import OdinDataAdapter
 
 
 class QemCalibrator():
@@ -40,9 +44,14 @@ class QemCalibrator():
     def initialize(self, adapters):
         """Receives references to the other adapters needed for calibration
         """
-        self.backplane_adapter = adapters["backplane"]  # TODO: Probs not the right way
-        self.odin_data_adapter = adapters["odin_data"]
-        pass
+
+        for _, adapter in adapters.items():
+            if isinstance(adapter, ProxyAdapter):
+                self.proxy_adapter = adapter
+                logging.debug("Proxy Adapter referenced by Calibrator")
+            if isinstance(adapter, OdinDataAdapter):
+                self.odin_data_adapter = adapter
+                logging.debug("Odin Data Adapter referenced by Calibrator")
 
     def get_cal_complete(self):
         """ getter method for the calibration completed flag
@@ -161,23 +170,23 @@ class QemCalibrator():
             for fem in self.qem_fems:
                 fem.get_aligner_status()  # qem fem reference
                 locked = fem.get_idelay_lock_status()  # qem fem reference
-                print "%-32s %-8X" % ('-> idelay locked:', locked)
-            print "%-32s" % ('-> Calibration started ...')
+                print("%-32s %-8X" % ('-> idelay locked:', locked))
+            print("%-32s" % ('-> Calibration started ...'))
 
             # define number of sweep
             n = 4096  # changed from 1024
             # define i and the starting point of the capture
             i = 0
-            self.backplane_adapter.set_resistor_register(6, 4095)  # setting AUXSAMPLE FINE to 0
+            self.set_backplane_resistor("6", 4095)  # setting AUXSAMPLE FINE to 0
 
             # MAIN loop to capture data
             while i < n:
                 # set AUXSAMPLE_COARSE to i
-                self.backplane_adapter.set_resistor_register(7, i)
+                self.set_backplane_resistor("7", i)
                 # delay 0 seconds (default) or by number passed to the function
                 time.sleep(delay)
                 # Save the captured data to here using RAH function
-                self.qemcamera.log_image_stream(self.data_dir + 'coarse/adc_cal_AUXSAMPLE_COARSE_%04d' % i, frames)  # odin data
+                # self.qemcamera.log_image_stream(self.data_dir + 'coarse/adc_cal_AUXSAMPLE_COARSE_%04d' % i, frames)  # odin data
                 i = i+1
 
             time.sleep(1)
@@ -212,25 +221,25 @@ class QemCalibrator():
             for fem in self.qem_fems:
                 fem.get_aligner_status()  # qem fem reference
                 locked = fem.get_idelay_lock_status()  # qem fem reference
-                print "%-32s %-8X" % ('-> idelay locked:', locked)
-            print "%-32s" % ('-> Calibration started ...')
+                print("%-32s %-8X" % ('-> idelay locked:', locked))
+            print("%-32s" % ('-> Calibration started ...'))
 
             # define the number of loops for the adc calibration
             n = 4096  # changed from 1024
             # define i and the staring point
             i = 0
             # set the default starting point for the COARSE value
-            self.backplane_adapter.set_resistor_register(7, 728)  # 435
+            self.set_backplane_resistor("7", 728)  # 435
 
             # main loop to capture the data
             while i < n:
                 # set the the AUXSAMPLE_FINE resistor to i
-                self.backplane_adapter.set_resistor_register(6, i)
+                self.set_backplane_resistor("6", i)
                 # delay by 0 (default) or by the number passed to the function
                 time.sleep(delay)
                 # capture the data from the stream using rah function
-                self.qemcamera.log_image_stream(
-                    self.data_dir + 'fine/adc_cal_AUXSAMPLE_FINE_%04d' % i, frames)  # odin data
+                # self.qemcamera.log_image_stream(
+                    # self.data_dir + 'fine/adc_cal_AUXSAMPLE_FINE_%04d' % i, frames)  # odin data
                 i = i+1
             # end of main loop
 
@@ -331,3 +340,10 @@ class QemCalibrator():
         fig.savefig("static/img/coarse_graph.png", dpi=100)
         fig.clf()
         self.set_cal_complete(True)
+
+    def set_backplane_resistor(self, resistor, value):
+        """Sets the value of a resistor on the backplane
+        """
+        data = {resistor: value}
+        request = ApiAdapterRequest(data)
+        self.proxy_adapter.put("backplane", request)
