@@ -16,7 +16,7 @@ from tornado.ioloop import IOLoop
 from tornado.concurrent import run_on_executor
 from tornado.escape import json_decode
 
-from odin.adapters.adapter import ApiAdapter, ApiAdapterResponse, request_types, response_types
+from odin.adapters.adapter import ApiAdapter, ApiAdapterResponse, request_types, response_types, wants_metadata
 from odin.adapters.parameter_tree import ParameterTree, ParameterTreeError
 from odin._version import get_versions
 
@@ -68,7 +68,7 @@ class BackplaneAdapter(ApiAdapter):
         :return: an ApiAdapterResponse object containing the appropriate response
         """
         try:
-            response = self.backplane.get(path)
+            response = self.backplane.get(path, wants_metadata(request))
             status_code = 200
         except ParameterTreeError as e:
             response = {'error': str(e)}
@@ -167,9 +167,9 @@ class Backplane():
             self.cunits = ["mA", "mA", "mA", "mA", "mA", "mA", "mA", "mA", "mA", "mA", "mA", "mA", "mA"]
             self.vunits = ["V", "V", "V", "V", "V", "V", "V", "V", "V", "V", "V", "V", "V"]
 
-            self.MONITOR_RESISTANCE = [2.5, 1, 1, 1, 10, 1, 10, 1, 1, 1, 10, 1, 10]
             """this list defines the resistance of the current-monitoring resistor in the circuit multiplied by 100 (for the amplifier)"""
-
+            self.MONITOR_RESISTANCE = [2.5, 1, 1, 1, 10, 1, 10, 1, 1, 1, 10, 1, 10]
+            
             resistor_tree = ParameterTree({
                 "name": "Resistors",
                 "description": "Resistors on the Backplane.",
@@ -195,23 +195,23 @@ class Backplane():
 
             for index, name in enumerate(self.names):
                 voltage = {
-                    "voltage": (lambda: self.voltages[index], None, {
+                    "voltage": (lambda index=index: self.voltages[index], None, {
                         "name": "Voltage",
                         "description": "Actual Voltage from the backplane",
                         "units": self.vunits[index]
                     }),
-                    "register": (lambda: self.voltages_raw[index], None, {
+                    "register": (lambda index=index: self.voltages_raw[index], None, {
                         "name": "Register",
                         "description": "Raw register value from the backplane"
                     })
                 }
                 current = {
-                    "current": (lambda: self.currents[index], None, {
+                    "current": (lambda index=index: self.currents[index], None, {
                         "name": "Current",
                         "description": "Actual Current from the backplane",
                         "units": self.cunits[index]
                     }),
-                    "register": (lambda: self.currents_raw[index], None, {
+                    "register": (lambda index=index: self.currents_raw[index], None, {
                         "name": "Register",
                         "description": "Raw register value from the backplane"
                     })
@@ -248,8 +248,8 @@ class Backplane():
 
             
 
-    def get(self, path):
-        return self.param_tree.get(path)
+    def get(self, path, wants_metadata=False):
+        return self.param_tree.get(path, wants_metadata)
 
     def set(self, path, data):
         return self.param_tree.set(path, data)
@@ -269,9 +269,8 @@ class Backplane():
             self.update_voltages()
             self.update_currents()
             # print("update, now %d" %self.resistor_1)
-
-
-
+# "VDD_D25", "VDD_P18", "VDD_A18_PLL", "VDD_D18ADC", "VDD_D18_PLL", "VDD_RST", "VDD_A33", "VDD_D33", "VCTRL_NEG", "VRESET", "VCTRL_POS"]
+    
     def get_voltages(self):
         return dict(zip(self.names, self.voltages))
 
@@ -290,9 +289,8 @@ class Backplane():
     def get_cunits(self):
         return dict(zip(self.names, self.cunits))
 
-    
     def update_voltages(self):
-        #Voltages
+        # Voltages
         for i in range(7):
             j = self.voltChannelLookup[0][i]
             self.voltages_raw[i] = self.ad7998[1].read_input_raw(j) & 0xfff
@@ -303,7 +301,7 @@ class Backplane():
             self.voltages[i + 7] = self.voltages_raw[i + 7] * 5 / 4095.0
     
     def update_currents(self):
-        #Currents
+        # Currents
         for i in range(7):
             j = self.voltChannelLookup[0][i]
             self.currents_raw[i] = (self.ad7998[0].read_input_raw(j) & 0xfff)
