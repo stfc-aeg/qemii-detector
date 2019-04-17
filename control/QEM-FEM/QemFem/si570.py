@@ -39,6 +39,7 @@ class SI570(I2CDevice):
 		data = self.readList(self.__register, 6)
 		self.__hs_div, self.__n1, self.__rfreq = self.__calculate_params(data)
 		self.__fxtal = (156250000 * self.__hs_div * self.__n1) / self.__rfreq / 1000000
+		self.__fout = (self.__fxtal * self.__rfreq) / (self.__n1 * self.__hs_div)
 
 	def get_fxtal(self):
 		"""Returns the crystal frequency of the device.
@@ -81,7 +82,9 @@ class SI570(I2CDevice):
 		ret += "fCURRENT: {:f}MHz".format(self.__fxtal * params[2] / (params[1] * params[0]))
 
 		return ret
-		
+	
+	def get_frequency(self):
+		return self.__fout
 
 	def set_frequency(self, freq):
 		"""Sets the output frequency of the oscillator.
@@ -135,11 +138,11 @@ class SI570(I2CDevice):
 		#Unfreeze the oscillator and set NEWFREQ flag
 		self.write8(137, self.readU8(137) & 0xEF)
 		self.write8(135, 0x40)
-
+		self.__fout = (self.__fxtal * self.__rfreq) / (self.__n1 * self.__hs_div)
 
 #Basic test for the device. Allows controlling of the output frequency
 if __name__ == "__main__":
-	si570 = SI570()
+	si570 = SI570(address=0x5d, busnum=1, model=SI570_C)
 	print(si570)
 	
 	freq = 100
