@@ -70,46 +70,47 @@ class Backplane():
             #populate the parameter tree
             self.param_tree = ParameterTree({
                
-                "VDDO":{    "voltage":(lambda: self.voltages[0], None, {"description": "Sensor main 1.8V supply", "units": "V"}),
+                "VDDO":{        "voltage":(lambda: self.voltages[0], None, {"description": "Sensor main 1.8V supply", "units": "V"}),
                                 "current":(lambda: self.currents[0], None,  {"description": "Current being drawn by this supply", "units": "mA"})
                 },
-                "VDD_D18":{    "voltage":(lambda: self.voltages[1], None, {"description": "Sensor Digital 1.8V supply", "units": "V"}),
+                "VDD_D18":{     "voltage":(lambda: self.voltages[1], None, {"description": "Sensor Digital 1.8V supply", "units": "V"}),
                                 "current":(lambda: self.currents[1], None,  {"description": "Current being drawn by this supply", "units": "mA"})
                 },
-                "VDD_D25":{    "voltage":(lambda: self.voltages[2], None, {"description": "Sensor Digital 2.5V supply", "units": "V"}),
+                "VDD_D25":{     "voltage":(lambda: self.voltages[2], None, {"description": "Sensor Digital 2.5V supply", "units": "V"}),
                                 "current":(lambda: self.currents[2], None,  {"description": "Current being drawn by this supply", "units": "mA"})
                 },
-                "VDD_P18":{    "voltage":(lambda: self.voltages[3], None, {"description": "Sensor Programmable Gain Amplifier 1.8V supply", "units": "V"}),
+                "VDD_P18":{     "voltage":(lambda: self.voltages[3], None, {"description": "Sensor Programmable Gain Amplifier 1.8V supply", "units": "V"}),
                                 "current":(lambda: self.currents[3], None,  {"description": "Current being drawn by this supply", "units": "mA"})
                 },
-                "VDD_A18_PLL":{    "voltage":(lambda: self.voltages[4], None, {"description": "Sensor Analogue & Phase Lock Loop 1.8V supply", "units": "V"}),
+                "VDD_A18_PLL":{ "voltage":(lambda: self.voltages[4], None, {"description": "Sensor Analogue & Phase Lock Loop 1.8V supply", "units": "V"}),
                                 "current":(lambda: self.currents[4], None,  {"description": "Current being drawn by this supply", "units": "mA"})
                 },
-                "VDD_D18ADC":{    "voltage":(lambda: self.voltages[5], None, {"description": "Sensor Digital Analogue to Digital Converter 1.8V supply", "units": "V"}),
+                "VDD_D18ADC":{  "voltage":(lambda: self.voltages[5], None, {"description": "Sensor Digital Analogue to Digital Converter 1.8V supply", "units": "V"}),
                                 "current":(lambda: self.currents[5], None,  {"description": "Current being drawn by this supply", "units": "mA"})
                 },
-                "VDD_D18_PLL":{    "voltage":(lambda: self.voltages[6], None, {"description": "Sensor Digital Phase Lock Loop 1.8V supply", "units": "V"}),
+                "VDD_D18_PLL":{ "voltage":(lambda: self.voltages[6], None, {"description": "Sensor Digital Phase Lock Loop 1.8V supply", "units": "V"}),
                                 "current":(lambda: self.currents[6], None,  {"description": "Current being drawn by this supply", "units": "mA"})
                 },
-                "VDD_RST":{    "voltage":(lambda: self.voltages[7], None, {"description": "Sensor Reset point variable (1.8V - 3.3V) supply", "units": "V"}),
+                "VDD_A33":{     "voltage":(lambda: self.voltages[8], None, {"description": "Sensor Analogue 3.3V supply", "units": "V"}),
+                                "current":(lambda: self.currents[8], None,  {"description": "Current being drawn by this supply", "units": "mA"})
+                },
+                "VDD_D33":{     "voltage":(lambda: self.voltages[9], None, {"description": "Sensor Digital 3.3V supply", "units": "V"}),
+                                "current":(lambda: self.currents[9], None,  {"description": "Current being drawn by this supply", "units": "mA"})
+                },
+                #from here need to add the set methods into the parameter tree
+                "VDD_RST":{     "voltage":(lambda: self.voltages[7], None, {"description": "Sensor Reset point variable (1.8V - 3.3V) supply", "units": "V"}),
                                 "register":(lambda: self.voltages_raw[7], None,  {"description": "Register Value"}),
                                 "current":(lambda: self.currents[7], None,  {"description": "Current being drawn by this supply", "units": "mA"})
                 },
-                "VDD_A33":{    "voltage":(lambda: self.voltages[8], None, {"description": "Sensor Analogue 3.3V supply", "units": "V"}),
-                                "current":(lambda: self.currents[8], None,  {"description": "Current being drawn by this supply", "units": "mA"})
-                },
-                "VDD_D33":{    "voltage":(lambda: self.voltages[9], None, {"description": "Sensor Digital 3.3V supply", "units": "V"}),
-                                "current":(lambda: self.currents[9], None,  {"description": "Current being drawn by this supply", "units": "mA"})
-                },
-                "VCTRL_NEG":{    "voltage":(lambda: self.voltages[10], None, {"description": "Sensor VCTRL variable (-2V - 0V) supply", "units": "V"}),
+                "VCTRL_NEG":{   "voltage":(lambda: self.voltages[10], None, {"description": "Sensor VCTRL variable (-2V - 0V) supply", "units": "V"}),
                                 "register":(lambda: self.voltages_raw[10], None,  {"description": "Register Value"}),
                                 "current":(lambda: self.currents[10], None,  {"description": "Current being drawn by this supply", "units": "mA"})
                 },
-                "VRESET":{    "voltage":(lambda: self.voltages[11], None, {"description": "Sensor VRESET variable (0V - 3.3V) supply", "units": "V"}),
+                "VRESET":{      "voltage":(lambda: self.voltages[11], None, {"description": "Sensor VRESET variable (0V - 3.3V) supply", "units": "V"}),
                                 "register":(lambda: self.voltages_raw[11], None,  {"description": "Register Value"}),
                                 "current":(lambda: self.currents[11], None,  {"description": "Current being drawn by this supply", "units": "mA"})
                 },
-                "VCTRL_POS":{    "voltage":(lambda: self.voltages[12], None, {"description": "Sensor VCTRL variable (0V - 3.3V) supply", "units": "V"}),
+                "VCTRL_POS":{   "voltage":(lambda: self.voltages[12], None, {"description": "Sensor VCTRL variable (0V - 3.3V) supply", "units": "V"}),
                                 "register":(lambda: self.voltages_raw[12], None,  {"description": "Register Value"}),
                                 "current":(lambda: self.currents[12], None,  {"description": "Current being drawn by this supply", "units": "mA"})
                 },
@@ -118,7 +119,9 @@ class Backplane():
                 },
                 "AUXSAMPLE_FINE":{      "voltage":(self.get_fine_voltage, self.set_fine_voltage, {"description": "Sensor AUXSAMPLE FINE VALUE input", "units": "uV"}),
                                         "register":(self.get_fine_register, self.set_fine_register,  {"description": "Register Value"})
-                },        
+                },
+                "AUXSAMPLE":{   "voltage":(self.auxsample_total, None,{"description":"Sum of coarse and fine settings"})
+                },      
                 "enable":(lambda: self.update, self.set_update, {"description": "Controls I2C activity on the backplane"}),
                 "clock(MHz)":(self.get_clock_frequency, self.set_clock_frequency,{"description": "Controls the main clock Reference", "units": "MHz"}), 
                 "dacextref":{   "current":(self.get_dacextref, self.set_dacextref, {"description": "Controls the DAC external current reference", "units": "uA"}),
@@ -147,68 +150,81 @@ class Backplane():
     
     #method to set the update flag            
     def set_update(self, value):
-            self.update = value
+        """This enables / disables I2C communication on the backplane"""
+        self.update = value
 
     #clock functions
     def get_clock_frequency(self):
-        #this will do something amazing one day
+        """This returns the clock frequency in MHz"""
         return self.si570.get_frequency()
     
     def set_clock_frequency(self, value):
-        #this will do something amazing one day
-        logging.debug("got here, value is %d" %value)
+        """This sets the clock frequency in MHz"""
         self.si570.set_frequency(value)
 
     #functions to control the external chip current DACEXTREF
     def get_dacextref(self):
+        """This returns the DAC External current reference, as yet to be implemented"""
         return 55
     def set_dacextref(self, value):
+        """This sets the DAC external current reference, as yet to be implemented"""
         temp=value
         #functions to control the external chip current DACEXTREF
     def get_dacextrefreg(self):
+        """This returns the DAC external current reference register setting, as yet to be implemented"""
         return 55
     def set_dacextrefreg(self, value):
+        """This sets the DAC external current reference register setting, as yet to be implemented"""
         temp=value
     
     #definitions to get / set coarse auxsample (1)
     def get_coarse_register(self):
+        """This function returns the coarse register value"""
         return self.ad5694.read_dac_value(1, force=True)
     def set_coarse_register(self, value):
-        return self.ad5694.set_from_value(1, value) 
+        """This function sets the coarse register value"""
+        return self.ad5694.set_from_value(1, value)
     def get_coarse_voltage(self):
+        """This function returns the coarse voltage value"""
         return self.ad5694.read_dac_voltage(1)
     def set_coarse_voltage(self, value):
+        """This function sets the coarse voltage value"""
         return self.ad5694.set_from_voltage(1, value)
 
     #definitions to get / set fine auxsample (4)
     def get_fine_register(self):
+        """This returns the fine register value"""
         return self.ad5694.read_dac_value(4, force=True)
     def set_fine_register(self, value):
+        """This sets the fine register value"""
         return self.ad5694.set_from_value(4, value) 
     def get_fine_voltage(self):
+        """This returns the fine voltage value"""
         return self.ad5694.read_dac_voltage(4)
     def set_fine_voltage(self, value):
+        """This sets the fine voltage value"""
         return self.ad5694.set_from_voltage(4, value)
 
-    #main get and set methods
+    def auxsample_total(self):
+        """Returns the total of auxsample fine + coarse values"""
+        return self.ad5694.read_dac_voltage(4) + self.ad5694.read_dac_voltage(1)
+
     def get(self, path, wants_metadata=False):
+        """Main get method for the parameter tree"""
         return self.param_tree.get(path, wants_metadata)
     def set(self, path, data):
+        """Main set method for the parameter tree"""
         return self.param_tree.set(path, data)
     
-    #function that updates the vectors
     def poll_all_sensors(self):
-        """This will do something amazing one day"""
-
+        """This function calls all the update functions that are executed every 1 second(s) if update = true"""
         if self.update == True:
             self.update_voltages()
             self.update_currents()
             self.power_good = self.mcp23008[0].input_pins([0,1,2,3,4,5,6,7,8])
-            
-# "VDD_D25", "VDD_P18", "VDD_A18_PLL", "VDD_D18ADC", "VDD_D18_PLL", "VDD_RST", "VDD_A33", "VDD_D33", "VCTRL_NEG", "VRESET", "VCTRL_POS"]
 
     def update_voltages(self):
-        # Voltages
+        """Method to update the voltage vectors"""
         for i in range(7):
             j = self.voltChannelLookup[0][i]
             self.voltages_raw[i] = int(self.ad7998[1].read_input_raw(j) & 0xfff)
@@ -219,7 +235,7 @@ class Backplane():
             self.voltages[i + 7] = self.voltages_raw[i + 7] * 5 / 4095.0
     
     def update_currents(self):
-        # Currents
+        """Method to update the current vectors"""
         for i in range(7):
             j = self.voltChannelLookup[0][i]
             self.currents_raw[i] = int(self.ad7998[0].read_input_raw(j) & 0xfff)
