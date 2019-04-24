@@ -8,8 +8,8 @@ from ad5272 import AD5272
 from mcp23008 import MCP23008
 from tpl0102 import TPL0102
 from si570 import SI570
-from ad7998 import AD7998
-from ad5694 import AD5694
+from ad7998 import ad7998
+from ad5694 import ad5694
 
 from odin.adapters.parameter_tree import ParameterTree, ParameterTreeError
 
@@ -48,14 +48,17 @@ class Backplane():
             #this creates a list of ad7998 devices (Analog to Digital Converters)
             self.ad7998 = []
             for i in range(4):
-                self.ad7998.append(self.tca.attach_device(2, AD7998, 0x21 + i, busnum=1))
+                self.ad7998.append(self.tca.attach_device(2, ad7998, 0x21 + i, busnum=1))
             
             #this creates a link to the clock
             self.si570 = self.tca.attach_device(1, SI570, 0x5d, 'SI570', busnum=1)
             self.si570.set_frequency(17.5) #Default to 17.5MHz
 
             #Digital to Analogue Converter 0x2E = fine adjustment (AUXSAMPLE_FILE), 0x2F coarse adjustment (AUXSAMPLE_COARSE)
-            self.ad5694 = self.tca.attach_device(5, AD5694, 0x0E, busnum=1)
+            self.ad5694 = self.tca.attach_device(5, ad5694, 0x0E, busnum=1)
+            self.ad5694.set_multiplier(1, 0.0003734) #special value needed for the hardware
+            self.ad5694.set_multiplier(4, 0.00002) # special value needed for the hardware
+
             #self.ad5694.setup()
 
             #this creates a list of the GPIO devices
@@ -97,7 +100,15 @@ class Backplane():
                 "VDD_D33":{     "voltage":(lambda: self.voltages[9], None, {"description": "Sensor Digital 3.3V supply", "units": "V"}),
                                 "current":(lambda: self.currents[9], None,  {"description": "Current being drawn by this supply", "units": "mA"})
                 },
-                #from here need to add the set methods into the parameter tree
+                "AUXSAMPLE_COARSE":{    "voltage":(self.get_coarse_voltage, self.set_coarse_voltage, {"description": "Sensor AUXSAMPLE COARSE VALUE input", "units": "mV"}),
+                                        "register":(self.get_coarse_register, self.set_coarse_register,  {"description": "Register Value"})
+                },
+                "AUXSAMPLE_FINE":{      "voltage":(self.get_fine_voltage, self.set_fine_voltage, {"description": "Sensor AUXSAMPLE FINE VALUE input", "units": "uV"}),
+                                        "register":(self.get_fine_register, self.set_fine_register,  {"description": "Register Value"})
+                },
+                "AUXSAMPLE":{   "voltage":(self.auxsample_total, None,{"description":"Sum of coarse and fine settings"})
+                },
+                #BELOW:need to add the set methods into the parameter tree
                 "VDD_RST":{     "voltage":(lambda: self.voltages[7], None, {"description": "Sensor Reset point variable (1.8V - 3.3V) supply", "units": "V"}),
                                 "register":(lambda: self.voltages_raw[7], None,  {"description": "Register Value"}),
                                 "current":(lambda: self.currents[7], None,  {"description": "Current being drawn by this supply", "units": "mA"})
@@ -113,15 +124,8 @@ class Backplane():
                 "VCTRL_POS":{   "voltage":(lambda: self.voltages[12], None, {"description": "Sensor VCTRL variable (0V - 3.3V) supply", "units": "V"}),
                                 "register":(lambda: self.voltages_raw[12], None,  {"description": "Register Value"}),
                                 "current":(lambda: self.currents[12], None,  {"description": "Current being drawn by this supply", "units": "mA"})
-                },
-                "AUXSAMPLE_COARSE":{    "voltage":(self.get_coarse_voltage, self.set_coarse_voltage, {"description": "Sensor AUXSAMPLE COARSE VALUE input", "units": "mV"}),
-                                        "register":(self.get_coarse_register, self.set_coarse_register,  {"description": "Register Value"})
-                },
-                "AUXSAMPLE_FINE":{      "voltage":(self.get_fine_voltage, self.set_fine_voltage, {"description": "Sensor AUXSAMPLE FINE VALUE input", "units": "uV"}),
-                                        "register":(self.get_fine_register, self.set_fine_register,  {"description": "Register Value"})
-                },
-                "AUXSAMPLE":{   "voltage":(self.auxsample_total, None,{"description":"Sum of coarse and fine settings"})
-                },      
+                },   
+                #ABOVE: need to add set methods in the parameter tree
                 "enable":(lambda: self.update, self.set_update, {"description": "Controls I2C activity on the backplane"}),
                 "clock(MHz)":(self.get_clock_frequency, self.set_clock_frequency,{"description": "Controls the main clock Reference", "units": "MHz"}), 
                 "dacextref":{   "current":(self.get_dacextref, self.set_dacextref, {"description": "Controls the DAC external current reference", "units": "uA"}),
@@ -206,8 +210,8 @@ class Backplane():
         return self.ad5694.set_from_voltage(4, value)
 
     def auxsample_total(self):
-        """Returns the total of auxsample fine + coarse values"""
-        return self.ad5694.read_dac_voltage(4) + self.ad5694.read_dac_voltage(1)
+        """Returns the total of auxsample fine + coarse values + offset of 0.197"""
+        return self.ad5694.read_dac_voltage(4) + self.ad5694.read_dac_voltage(1) + 0.197
 
     def get(self, path, wants_metadata=False):
         """Main get method for the parameter tree"""
