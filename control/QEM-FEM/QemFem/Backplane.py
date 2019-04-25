@@ -27,17 +27,22 @@ class Backplane():
         try:
             self.voltages = [0.0] * 16
             self.voltages_raw = [0] * 15
-            #above: voltage names are =
-            #vddo, vdd_d18, vdd_d25, vdd_p18, vdd_a18_pll, vdd_a18adc, vdd_d18_pll, vdd_rst, vdd_a33, vdd_d33, vctrl_neg, vreset, vctrl_pos, aux_coarse, aux_fine, aux_total
-            #| 0      1        2        3         4            5           6      | |   7       8         9        10       11       12    | |      13      14   | |   15
-            #|-------------------------- U46, 0x34 -------------------------------| |------------------- U40, 0x36 ------------------------- |----- U? 0x0E -----| | CALCULATED |
-            
+            """above: voltage names are =
+            vddo, vdd_d18, vdd_d25, vdd_p18, vdd_a18_pll, vdd_a18adc, vdd_d18_pll, vdd_rst, vdd_a33, vdd_d33, vctrl_neg, vreset, vctrl_pos, aux_coarse, aux_fine,        aux_total
+            | 0      1        2        3         4            5           6      | |   7       8         9        10       11       12    | |      13      14   |      |     15     |
+            |-------------------------- U46, 0x34 -------------------------------| |------------------- U40, 0x36 ------------------------| |----- U? 0x0E -----|      | CALCULATED |
+            """
+            self.currents = [0.0] * 13
+            self.currents_raw = [0.0] * 13
+            """above: current names are =
+            vddo, vdd_d18, vdd_d25, vdd_p18, vdd_a18_pll, vdd_a18adc, vdd_d18_pll, vdd_rst, vdd_a33, vdd_d33, vctrl_neg, vreset, vctrl_pos
+            | 0      1        2        3         4            5           6      | |   7       8         9        10       11       12    |
+            |-------------------------- U45, 0x33 -------------------------------| |------------------- U39, 0x35 ------------------------|
+            """
             
             self.power_good = [False] * 8
             self.voltChannelLookup = ((0,2,3,4,5,6,7),(0,2,4,5,6,7))
-            self.currents = [0.0] * 15
-            self.currents_raw = [0.0] * 15
-
+            
             """this list defines the resistance of the current-monitoring resistor in the circuit multiplied by 100 (for the amplifier)"""
             self.MONITOR_RESISTANCE = [2.5, 1, 1, 1, 10, 1, 10, 1, 1, 1, 10, 1, 10]
 
@@ -59,6 +64,7 @@ class Backplane():
             #this creates a link to the clock
             self.si570 = self.tca.attach_device(1, SI570, 0x5d, 'SI570', busnum=1)
             self.si570.set_frequency(17.5) #Default to 17.5MHz
+            self.clock_frequency = 17.5
 
             #Digital to Analogue Converter 0x2E = fine adjustment (AUXSAMPLE_FILE), 0x2F coarse adjustment (AUXSAMPLE_COARSE)
             self.ad5694 = self.tca.attach_device(5, ad5694, 0x0E, busnum=1)
@@ -168,7 +174,14 @@ class Backplane():
 
         except ImportError:
             print('Unable to locate the module.')
-            
+
+    def get(self, path, wants_metadata=False):
+        """Main get method for the parameter tree"""
+        return self.param_tree.get(path, wants_metadata)
+    def set(self, path, data):
+        """Main set method for the parameter tree"""
+        return self.param_tree.set(path, data)
+
     
     #method to set the update flag            
     def set_update(self, value):
@@ -178,10 +191,12 @@ class Backplane():
     #clock functions
     def get_clock_frequency(self):
         """This returns the clock frequency in MHz"""
-        return self.si570.get_frequency()
+        return self.clock_frequency
+        
     
     def set_clock_frequency(self, value):
         """This sets the clock frequency in MHz"""
+        self.clock_frequency = value
         self.si570.set_frequency(value)
 
     #functions to control the external chip current DACEXTREF
@@ -227,12 +242,7 @@ class Backplane():
         self.voltages[15] = self.voltages[13] + self.voltages[14] + 0.197
         self.ad5694.set_from_voltage(4, value)
 
-    def get(self, path, wants_metadata=False):
-        """Main get method for the parameter tree"""
-        return self.param_tree.get(path, wants_metadata)
-    def set(self, path, data):
-        """Main set method for the parameter tree"""
-        return self.param_tree.set(path, data)
+    
     
     def poll_all_sensors(self):
         """This function calls all the update functions that are executed every 1 second(s) if update = true"""
