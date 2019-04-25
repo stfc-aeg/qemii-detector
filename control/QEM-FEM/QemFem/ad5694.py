@@ -71,13 +71,13 @@ class ad5694(I2CDevice):
         else:
             raise I2CException("Choose DAC 1 or 4, 2/3 not currently implemented")
 
-    def read_dac_value(self, dac, force=False):
+    def read_dac_value(self, dac):
         """ returns the dac value, if force - performs a new i2c read
 	@param dac : the dac to read from
 	@param force : boolean flag to determine whether to perform a new read
 	"""
-        if force:
-            result = [0x00, 0x00]
-            byte1, byte2 =  self.readList(WRITE_UPDATE + self.dacs[dac-1], 2)
-            self.dac_values[dac-1] = (((byte1 & 0xFF) << 8) + byte2) >> 4	
+
+        result = [0x00, 0x00]
+        byte1, byte2 =  self.readList(WRITE_UPDATE + self.dacs[dac-1], 2)
+        self.dac_values[dac-1] = (((byte1 & 0xFF) << 8) + byte2) >> 4	
         return self.dac_values[dac-1] 
