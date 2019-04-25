@@ -25,8 +25,14 @@ class Backplane():
         #signal.signal(signal.SIGALRM, self.connect_handler)
         #signal.alarm(6)
         try:
-            self.voltages = [0.0] * 13
-            self.voltages_raw = [0] * 13
+            self.voltages = [0.0] * 16
+            self.voltages_raw = [0] * 15
+            #above: voltage names are =
+            #vddo, vdd_d18, vdd_d25, vdd_p18, vdd_a18_pll, vdd_a18adc, vdd_d18_pll, vdd_rst, vdd_a33, vdd_d33, vctrl_neg, vreset, vctrl_pos, aux_coarse, aux_fine, aux_total
+            #| 0      1        2        3         4            5           6      | |   7       8         9        10       11       12    | |      13      14   | |   15
+            #|-------------------------- U46, 0x34 -------------------------------| |------------------- U40, 0x36 ------------------------- |----- U? 0x0E -----| | CALCULATED |
+            
+            
             self.power_good = [False] * 8
             self.voltChannelLookup = ((0,2,3,4,5,6,7),(0,2,4,5,6,7))
             self.currents = [0.0] * 15
@@ -56,10 +62,13 @@ class Backplane():
 
             #Digital to Analogue Converter 0x2E = fine adjustment (AUXSAMPLE_FILE), 0x2F coarse adjustment (AUXSAMPLE_COARSE)
             self.ad5694 = self.tca.attach_device(5, ad5694, 0x0E, busnum=1)
-            self.ad5694.set_multiplier(1, 0.0003734) #special value needed for the hardware
-            self.ad5694.set_multiplier(4, 0.00002) # special value needed for the hardware
-
-            #self.ad5694.setup()
+            #below: read the current value in the AC registers
+            self.voltages_raw[13] = self.ad5694.read_dac_value(1)
+            self.voltages_raw[14] = self.ad5694.read_dac_value(4)
+            #below: calculate the voltages based on the hardware constants set by the feeback resistors in the schematics
+            self.voltages[13] = self.voltages_raw[13] * 0.0003734 #constant required as the multiplier for the hardware (see schematics)
+            self.voltages[14] = self.voltages_raw[14] * 0.00002 #constant required as the multiplier for the hardware (see schematics)
+            self.voltages[15] = self.voltages[13] + self.voltages[14] + 0.197 #constant is the voltage o/p from the op-amp when both i/p are zero
 
             #this creates a list of the GPIO devices
             self.mcp23008 = []
@@ -69,6 +78,15 @@ class Backplane():
                 self.mcp23008[0].setup(i, MCP23008.IN)
             self.mcp23008[1].output(0, MCP23008.HIGH)
             self.mcp23008[1].setup(0, MCP23008.OUT)
+
+        #exception error handling needs further improvement
+        except ValueError:
+            print('Non-numeric input detected.')
+
+        except ImportError:
+            print('Unable to locate the module.')
+
+        try:    
 
             #populate the parameter tree
             self.param_tree = ParameterTree({
@@ -100,13 +118,13 @@ class Backplane():
                 "VDD_D33":{     "voltage":(lambda: self.voltages[9], None, {"description": "Sensor Digital 3.3V supply", "units": "V"}),
                                 "current":(lambda: self.currents[9], None,  {"description": "Current being drawn by this supply", "units": "mA"})
                 },
-                "AUXSAMPLE_COARSE":{    "voltage":(self.get_coarse_voltage, self.set_coarse_voltage, {"description": "Sensor AUXSAMPLE COARSE VALUE input", "units": "mV"}),
-                                        "register":(self.get_coarse_register, self.set_coarse_register,  {"description": "Register Value"})
+                "AUXSAMPLE_COARSE":{    "voltage":(lambda: self.voltages[13], self.set_coarse_voltage, {"description": "Sensor AUXSAMPLE COARSE VALUE input", "units": "mV"}),
+                                        "register":(lambda: self.voltages_raw[13], self.set_coarse_register,  {"description": "Register Value"})
                 },
-                "AUXSAMPLE_FINE":{      "voltage":(self.get_fine_voltage, self.set_fine_voltage, {"description": "Sensor AUXSAMPLE FINE VALUE input", "units": "uV"}),
-                                        "register":(self.get_fine_register, self.set_fine_register,  {"description": "Register Value"})
+                "AUXSAMPLE_FINE":{      "voltage":(lambda: self.voltages[14], self.set_fine_voltage, {"description": "Sensor AUXSAMPLE FINE VALUE input", "units": "uV"}),
+                                        "register":(lambda: self.voltages_raw[14], self.set_fine_register,  {"description": "Register Value"})
                 },
-                "AUXSAMPLE":{   "voltage":(self.auxsample_total, None,{"description":"Sum of coarse and fine settings"})
+                "AUXSAMPLE":{   "voltage":(lambda: self.voltages[15], None,{"description":"Sum of coarse and fine settings"})
                 },
                 #BELOW:need to add the set methods into the parameter tree
                 "VDD_RST":{     "voltage":(lambda: self.voltages[7], None, {"description": "Sensor Reset point variable (1.8V - 3.3V) supply", "units": "V"}),
@@ -145,12 +163,12 @@ class Backplane():
                     
             })
 
-        except Exception, exc:
-            if exc == 13:
-                logging.error("I2C Communications not enabled for user. Try 'su -;chmod 666 /dev/i2c-1'")
-            else:
-                logging.error(exc)
-                # sys.exit(0)    
+        except ValueError:
+            print('Non-numeric input detected.')
+
+        except ImportError:
+            print('Unable to locate the module.')
+            
     
     #method to set the update flag            
     def set_update(self, value):
@@ -181,37 +199,33 @@ class Backplane():
         """This sets the DAC external current reference register setting, as yet to be implemented"""
         temp=value
     
-    #definitions to get / set coarse auxsample (1)
-    def get_coarse_register(self):
-        """This function returns the coarse register value"""
-        return self.ad5694.read_dac_value(1, force=True)
+    #definitions to set coarse auxsample (1)
     def set_coarse_register(self, value):
         """This function sets the coarse register value"""
-        return self.ad5694.set_from_value(1, value)
-    def get_coarse_voltage(self):
-        """This function returns the coarse voltage value"""
-        return self.ad5694.read_dac_voltage(1)
+        self.voltages_raw[13] = value
+        self.voltages[13] = self.voltages_raw[13] * 0.0003734
+        self.voltages[15] = self.voltages[13] + self.voltages[14] + 0.197
+        self.ad5694.set_from_value(1, value)
     def set_coarse_voltage(self, value):
         """This function sets the coarse voltage value"""
-        return self.ad5694.set_from_voltage(1, value)
+        self.voltages_raw[13] = int(value / 0.0003734)
+        self.voltages[13] = self.voltages_raw[13] * 0.0003734
+        self.voltages[15] = self.voltages[13] + self.voltages[14] + 0.197
+        self.ad5694.set_from_voltage(1, value)
 
-    #definitions to get / set fine auxsample (4)
-    def get_fine_register(self):
-        """This returns the fine register value"""
-        return self.ad5694.read_dac_value(4, force=True)
+    #definitions to set fine auxsample (4)
     def set_fine_register(self, value):
         """This sets the fine register value"""
-        return self.ad5694.set_from_value(4, value) 
-    def get_fine_voltage(self):
-        """This returns the fine voltage value"""
-        return self.ad5694.read_dac_voltage(4)
+        self.voltages_raw[14] = value
+        self.voltages[14] = self.voltages_raw[14] * 0.00002
+        self.voltages[15] = self.voltages[13] + self.voltages[14] + 0.197
+        self.ad5694.set_from_value(4, value) 
     def set_fine_voltage(self, value):
         """This sets the fine voltage value"""
-        return self.ad5694.set_from_voltage(4, value)
-
-    def auxsample_total(self):
-        """Returns the total of auxsample fine + coarse values + offset of 0.197"""
-        return self.ad5694.read_dac_voltage(4) + self.ad5694.read_dac_voltage(1) + 0.197
+        self.voltages_raw[14] = int(value / 0.00002)
+        self.voltages[14] = self.voltages_raw[14] * 0.00002
+        self.voltages[15] = self.voltages[13] + self.voltages[14] + 0.197
+        self.ad5694.set_from_voltage(4, value)
 
     def get(self, path, wants_metadata=False):
         """Main get method for the parameter tree"""
@@ -226,6 +240,7 @@ class Backplane():
             self.update_voltages()
             self.update_currents()
             self.power_good = self.mcp23008[0].input_pins([0,1,2,3,4,5,6,7,8])
+
 
     def update_voltages(self):
         """Method to update the voltage vectors"""
