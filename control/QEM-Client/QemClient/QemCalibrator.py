@@ -10,13 +10,18 @@ import time
 import logging
 import glob
 # import os
+from tornado.ioloop import IOLoop
 from tornado.concurrent import run_on_executor
+from concurrent import futures
 # import cv2
 # import sys
 # import pprint
 # import pickle
 import h5py
 # import numpy as np
+# set logging for MATPLOTLIB separatly to avoid a lot of debug spam
+mpl_logger = logging.getLogger('matplotlib')
+mpl_logger.setLevel(logging.WARNING)
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -26,6 +31,7 @@ import matplotlib.pyplot as plt
 
 # from QemCam import *
 from odin.adapters.adapter import ApiAdapter, ApiAdapterResponse, ApiAdapterRequest, request_types, response_types
+from odin.adapters.parameter_tree import ParameterTree, ParameterTreeError
 from odin.adapters.proxy import ProxyAdapter
 from odin_data.odin_data_adapter import OdinDataAdapter
 
@@ -34,12 +40,31 @@ class QemCalibrator():
     """Encapsulates the functionality required to initiate ADC calibration of the sensor
     """
 
+    thread_executor = futures.ThreadPoolExecutor(max_workers=1)
+    calibration_executor = futures.ThreadPoolExecutor(max_workers=1)
+
     def __init__(self, coarse_calibration_value, data_dir, fems):
+        mpl_logger = logging.getLogger('matplotlib')
+        mpl_logger.setLevel(logging.WARNING)
         self.calibration_complete = False
         self.plot_complete = False
         self.coarse_calibration_value = coarse_calibration_value
         self.data_dir = data_dir
         self.qem_fems = fems
+
+        self.dummy = 1
+
+        self.param_tree = ParameterTree({
+            "calibration_complete": (self.get_cal_complete, self.set_cal_complete),
+            "plot_complete": (self.get_plot_complete, self.set_plot_complete),
+            "start_fine_calibrate": (None, self.adc_calibrate_fine),
+            "start_coarse_calibrate": (None, self.adc_calibrate_coarse),
+            "start_coarse_plot": (None, self.plot_coarse),
+            "start_fine_plot": (None, self.plot_fine)
+        })
+
+    def set_dummy(self, value):
+        self.dummy = value
 
     def initialize(self, adapters):
         """Receives references to the other adapters needed for calibration
@@ -154,14 +179,16 @@ class QemCalibrator():
         gets the adc delay value and adc frame value before setting up
         the qemcam. Performs adc calibration sweep from 0-1023 taking images
         and storing them in data_diretory + /coarse
-        calls plotcoarse and sets calibration coarse complete to true when finished.
         """
-        config = self.get_adc_config()
-        frames, delay = config.split(":")
-        frames = int(frames)
-        delay = int(delay)
+        logging.debug("calibrate: %s", calibrate)
+        # config = self.get_adc_config()
+        # frames, delay = config.split(":")
+        frames = 1  # int(frames)
+        delay = 0.01  # int(delay)
+        logging.debug("FRAME: %s, delay: %s", frames, delay)
 
         if calibrate == "true":
+            logging.debug("STARTED COARSE CALIBRATION")
             self.set_cal_complete(False)
 
             for fem in self.qem_fems:
@@ -170,23 +197,23 @@ class QemCalibrator():
             for fem in self.qem_fems:
                 fem.get_aligner_status()  # qem fem reference
                 locked = fem.get_idelay_lock_status()  # qem fem reference
-                print("%-32s %-8X" % ('-> idelay locked:', locked))
+                logging.debug("idelay locked %-8X", locked)
             print("%-32s" % ('-> Calibration started ...'))
 
             # define number of sweep
-            n = 4096  # changed from 1024
+            n = 4096  # full range of the register
             # define i and the starting point of the capture
             i = 0
-            self.set_backplane_resistor("6", 4095)  # setting AUXSAMPLE FINE to 0
+            self.set_backplane_register("AUXSAMPLE_FINE", 4095)  # setting AUXSAMPLE FINE to MAX
 
             # MAIN loop to capture data
             while i < n:
                 # set AUXSAMPLE_COARSE to i
-                self.set_backplane_resistor("7", i)
+                self.set_backplane_register("AUXSAMPLE_COARSE", i)
                 # delay 0 seconds (default) or by number passed to the function
                 time.sleep(delay)
                 # Save the captured data to here using RAH function
-                # self.qemcamera.log_image_stream(self.data_dir + 'coarse/adc_cal_AUXSAMPLE_COARSE_%04d' % i, frames)  # odin data
+                self.qem_fems[0].log_image_stream(self.data_dir + 'coarse_AN/adc_cal_AUXSAMPLE_COARSE_%04d' % i, frames)  # odin data
                 i = i+1
 
             time.sleep(1)
@@ -221,7 +248,7 @@ class QemCalibrator():
             for fem in self.qem_fems:
                 fem.get_aligner_status()  # qem fem reference
                 locked = fem.get_idelay_lock_status()  # qem fem reference
-                print("%-32s %-8X" % ('-> idelay locked:', locked))
+                logging.debug("%-32s %-8X" % ('-> idelay locked:', locked))
             print("%-32s" % ('-> Calibration started ...'))
 
             # define the number of loops for the adc calibration
@@ -229,17 +256,17 @@ class QemCalibrator():
             # define i and the staring point
             i = 0
             # set the default starting point for the COARSE value
-            self.set_backplane_resistor("7", 728)  # 435
+            self.set_backplane_register("AUXSAMPLE_COARSE", 728)  # 435
 
             # main loop to capture the data
             while i < n:
                 # set the the AUXSAMPLE_FINE resistor to i
-                self.set_backplane_resistor("6", i)
+                self.set_backplane_register("AUXSAMPLE_FINE", i)
                 # delay by 0 (default) or by the number passed to the function
                 time.sleep(delay)
                 # capture the data from the stream using rah function
-                # self.qemcamera.log_image_stream(
-                    # self.data_dir + 'fine/adc_cal_AUXSAMPLE_FINE_%04d' % i, frames)  # odin data
+                self.qem_fems[0].log_image_stream(
+                    self.data_dir + 'fine/adc_cal_AUXSAMPLE_FINE_%04d' % i, frames)  # odin data
                 i = i+1
             # end of main loop
 
@@ -258,7 +285,7 @@ class QemCalibrator():
         a new set of axes each time to ensure no overwriting.Saves the file to
         /aeg_sw/work/projects/qem/python/03052018/fine.png
         """
-        self.set_cal_complete(False)
+        self.set_plot_complete(False)
         filelist = []
         filelist = self.Listh5Files("fine")
         # voltages for the plot
@@ -291,14 +318,14 @@ class QemCalibrator():
         ax.grid(True)
         ax.set_xlabel('Voltage')
         ax.set_ylabel('fine value')
-        # fig.savefig(self.data_dir + "fine/fine.png", dpi = 100)
+        fig.savefig(self.data_dir + "fine/fine.png", dpi = 100)
         fig.savefig("static/img/fine_graph.png", dpi=100)
         fig.clf()
-        self.set_cal_complete(True)
+        self.set_plot_complete(True)
         print(self.get_cal_complete())
 
     @run_on_executor(executor='thread_executor')
-    def plot_coarse(self, plot):
+    def plot_coarse(self, plot=None):
         """ plots the coarse bit data from the adc coarse calibration onto a graph
 
         lists all of the h5 files for coarse calibration and generates
@@ -306,18 +333,20 @@ class QemCalibrator():
         a new set of axes each time to ensure no overwriting.Saves the file to
         /aeg_sw/work/projects/qem/python/03052018/coarse.png
         """
-        self.set_cal_complete(False)
-
+        logging.debug("START PLOT COARSE")
+        self.set_plot_complete(False)
+        logging.debug(".")
         filelist = []
         # array of voltages for the plot
         voltages = []
         # array of column averages for the plot
         averages = []
         # generate a list of files to process
-        filelist = self.Listh5Files("coarse")
+        filelist = self.Listh5Files("coarse_AN")
+        logging.debug(".")
         # populate the voltage array
         voltages = self.generatecoarsevoltages(len(filelist))
-
+        logging.debug(".")
         # process the files in filelist
         for i in filelist:
             f = h5py.File(i, 'r')
@@ -328,9 +357,10 @@ class QemCalibrator():
             average = sum(column) / len(column)
             averages.append(average)
             f.close()
-
+        logging.debug(".")
         # generate and plot the graph
         fig = plt.figure()
+        logging.debug(".")
         ax = fig.add_subplot(1, 1, 1)
         ax.plot(voltages, averages, '-')
         ax.grid(True)
@@ -339,11 +369,15 @@ class QemCalibrator():
         # fig.savefig(self.data_dir + "coarse/coarse.png", dpi = 100)
         fig.savefig("static/img/coarse_graph.png", dpi=100)
         fig.clf()
-        self.set_cal_complete(True)
+        self.set_plot_complete(True)
+        logging.debug("END PLOT COARSE")
 
-    def set_backplane_resistor(self, resistor, value):
+    def set_backplane_register(self, register, value):
         """Sets the value of a resistor on the backplane
         """
-        data = {resistor: value}
+        logging.debug("Setting Register %s to %d", register, value)
+        data = {register: {"register": value}}
         request = ApiAdapterRequest(data)
-        self.proxy_adapter.put("backplane", request)
+        response = self.proxy_adapter.put("backplane", request)
+        if response.status_code != 200:
+            logging.error("BACKPLANE REGISTER SET FAILED: %s", response.data)

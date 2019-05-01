@@ -131,18 +131,36 @@ class QemDetector():
     hierarchy to perform DAQ, calibration runs and other generic control functions on the entire
     detector system (FEM-II's, Backplane, Data Path Packages etc.)
     """
+# server_ctrl_ip = 10.0.1.2
+# camera_ctrl_ip = 10.0.1.102
 
+# server_data_ip = 10.0.2.2
+# camera_data_ip = 10.0.2.102
     def __init__(self):
         self.daq = QemDAQ()
-        self.vector_file = None
-        fems = [QemFem(ip_address="127.0.0.1", port="8888", id=0, server_ctrl_ip_addr="localhost", camera_ctrl_ip_addr="localhost")]
-        self.calibrator = QemCalibrator(0, "", fems)
+        self.vector_file = "/aeg_sw/work/projects/qem/python/03052018/QEM_D4_198_ADC_10_icbias21_ifbias14.txt"  # "/aeg_sw/work/projects/qem/python/03052018/QEM_D4_396_ADC_aSpectBias_AUXRSTsampled_ADCbuf_05_iCbias_11_iFbias_20.txt"
+        fems = [QemFem(
+            ip_address="192.168.0.122",
+            port="8070",
+            id=0,
+            server_ctrl_ip_addr="10.0.1.2",
+            camera_ctrl_ip_addr="10.0.1.102",
+            server_data_ip_addr="10.0.2.2",
+            camera_data_ip_addr="10.0.2.102")]
+        for fem in fems:
+            fem.connect()
+            fem.load_vectors_from_file(self.vector_file)
+        self.calibrator = QemCalibrator(0, "/scratch/qem/", fems)  # TODO: replace hardcoded directory
+
+        self.param_tree = ParameterTree({
+            "calibrator": self.calibrator.param_tree
+        })
 
     def get(self, path):
-        pass
+        return self.param_tree.get(path)
 
     def set(self, path, data):
-        pass
+        return self.param_tree.set(path, data)
 
 
 class QemDAQ():
