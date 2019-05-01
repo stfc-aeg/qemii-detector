@@ -138,7 +138,8 @@ class QemDetector():
 # camera_data_ip = 10.0.2.102
     def __init__(self):
         self.daq = QemDAQ()
-        self.vector_file = "/aeg_sw/work/projects/qem/python/03052018/QEM_D4_198_ADC_10_icbias21_ifbias14.txt"  # "/aeg_sw/work/projects/qem/python/03052018/QEM_D4_396_ADC_aSpectBias_AUXRSTsampled_ADCbuf_05_iCbias_11_iFbias_20.txt"
+        #BACKUP VECTOR FILE REFERENCE: "/aeg_sw/work/projects/qem/python/03052018/QEM_D4_396_ADC_aSpectBias_AUXRSTsampled_ADCbuf_05_iCbias_11_iFbias_20.txt"
+        self.vector_file = "/aeg_sw/work/projects/qem/python/03052018/QEM_D4_198_ADC_10_icbias21_ifbias14.txt"
         fems = [QemFem(
             ip_address="192.168.0.122",
             port="8070",

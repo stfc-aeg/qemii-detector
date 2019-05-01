@@ -9,15 +9,20 @@ Adam Neaves, Application Engineering Group, STFC. 2019
 import time
 import logging
 import glob
+import h5py
 # import os
 from tornado.ioloop import IOLoop
 from tornado.concurrent import run_on_executor
 from concurrent import futures
+
+from odin.adapters.adapter import ApiAdapterRequest
+from odin.adapters.parameter_tree import ParameterTree
+from odin.adapters.proxy import ProxyAdapter
+from odin_data.odin_data_adapter import OdinDataAdapter
 # import cv2
 # import sys
 # import pprint
 # import pickle
-import h5py
 # import numpy as np
 # set logging for MATPLOTLIB separatly to avoid a lot of debug spam
 mpl_logger = logging.getLogger('matplotlib')
@@ -30,10 +35,8 @@ import matplotlib.pyplot as plt
 # from concurrent import futures
 
 # from QemCam import *
-from odin.adapters.adapter import ApiAdapter, ApiAdapterResponse, ApiAdapterRequest, request_types, response_types
-from odin.adapters.parameter_tree import ParameterTree, ParameterTreeError
-from odin.adapters.proxy import ProxyAdapter
-from odin_data.odin_data_adapter import OdinDataAdapter
+
+MAX_CALIBRATION = 4095
 
 
 class QemCalibrator():
@@ -41,7 +44,6 @@ class QemCalibrator():
     """
 
     thread_executor = futures.ThreadPoolExecutor(max_workers=1)
-    calibration_executor = futures.ThreadPoolExecutor(max_workers=1)
 
     def __init__(self, coarse_calibration_value, data_dir, fems):
         mpl_logger = logging.getLogger('matplotlib')
@@ -52,7 +54,7 @@ class QemCalibrator():
         self.data_dir = data_dir
         self.qem_fems = fems
 
-        self.dummy = 1
+        self.calibration_value = 0
 
         self.param_tree = ParameterTree({
             "calibration_complete": (self.get_cal_complete, self.set_cal_complete),
@@ -172,7 +174,6 @@ class QemCalibrator():
         """
         return self.adc_config
 
-    @run_on_executor(executor='thread_executor')
     def adc_calibrate_coarse(self, calibrate):
         """ perform adc calibration of the coarse values
         @param calibrate: boolean value to trigger calibration
@@ -207,18 +208,31 @@ class QemCalibrator():
             self.set_backplane_register("AUXSAMPLE_FINE", 4095)  # setting AUXSAMPLE FINE to MAX
 
             # MAIN loop to capture data
-            while i < n:
-                # set AUXSAMPLE_COARSE to i
-                self.set_backplane_register("AUXSAMPLE_COARSE", i)
-                # delay 0 seconds (default) or by number passed to the function
-                time.sleep(delay)
-                # Save the captured data to here using RAH function
-                self.qem_fems[0].log_image_stream(self.data_dir + 'coarse_AN/adc_cal_AUXSAMPLE_COARSE_%04d' % i, frames)  # odin data
-                i = i+1
+            IOLoop.instance().add_callback(self.coarse_calibration_loop, delay, frames)  # runs loop on main IO loop to avoid multi-threaded issues
+            return
+            # while i < n:
+            #     # set AUXSAMPLE_COARSE to i
+            #     self.set_backplane_register("AUXSAMPLE_COARSE", i)
+            #     # delay 0 seconds (default) or by number passed to the function
+            #     time.sleep(delay)
+            #     # Save the captured data to here using RAH function
+            #     self.qem_fems[0].log_image_stream(self.data_dir + 'coarse_AN/adc_cal_AUXSAMPLE_COARSE_%04d' % i, frames)  # odin data
+            #     i = i+1
 
-            time.sleep(1)
-            # self.plot_coarse()
+            # time.sleep(1)
+            # # self.plot_coarse()
+            # self.set_cal_complete(True)
+
+    def coarse_calibration_loop(self, delay, frames):
+        self.set_backplane_register("AUXSAMPLE_COARSE", self.calibration_value)
+        time.sleep(delay)
+        self.qem_fems[0].log_image_stream(self.data_dir + 'coarse_AN/adc_cal_AUXSAMPLE_COARSE_%04d' % self.calibration_value, frames)  # odin data
+        self.calibration_value += 1
+        if self.calibration_value < MAX_CALIBRATION:
+            IOLoop.instance().call_later(0, self.coarse_calibration_loop, frames)
+        else:
             self.set_cal_complete(True)
+        return
 
     @run_on_executor(executor='thread_executor')
     def adc_calibrate_fine(self, calibrate):
