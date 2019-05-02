@@ -52,6 +52,17 @@ class Backplane():
 
             self.adjust_resistor_raw = [0] * 8
             self.adjust_voltage = [0.0] * 8
+            """ For the above variables, the indexes are true:
+            0 = 0x51 = wiper 0 = AUXRESET   = tpl0102[0]    = calculated voltage only
+            1 = 0x51 = wiper 1 = VCM        = tpl0102[1]    = calculated voltage only
+            2 = 0x51 = wiper 0 = DACEXTREF  = tpl0102[2]    = calculated current only
+            3 = 0x52 = wiper 1 = N/C        = tpl0102[3]
+            4 = 0x52 = wiper 0 = VDD_RST    = tpl0102[4]    = calculated + measured with ADC
+            5 = 0x52 = wiper 1 = VRESET     = tpl0102[5]    = calculated + measured with ADC
+            6 = 0x53 = wiper 0 = VCTRL      = tpl0102[6]    = calculated + measured with ADC
+            7 = 0x53 = wiper 1 = N/C        = tpl0102[7]
+            """
+            
 
 
             """BELOW: I2C devices instances"""
