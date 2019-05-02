@@ -151,7 +151,7 @@ class QemDetector():
         for fem in fems:
             fem.connect()
             fem.load_vectors_from_file(self.vector_file)
-        self.calibrator = QemCalibrator(0, "/scratch/qem/", fems)  # TODO: replace hardcoded directory
+        self.calibrator = QemCalibrator(0, "/scratch/qem/QEM_AN_CALIBRATION/", fems)  # TODO: replace hardcoded directory
 
         self.param_tree = ParameterTree({
             "calibrator": self.calibrator.param_tree

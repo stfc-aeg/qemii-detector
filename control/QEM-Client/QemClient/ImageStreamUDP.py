@@ -177,7 +177,6 @@ class ImageStreamUDP(object):
         return image_array
 
     def get_image_set(self, num_images):
-        logging.debug("Getting %d Images", num_images)
         image_array =np.zeros((num_images,self.image_size_x,self.image_size_y), dtype=np.uint16)
         
         self.sensor_image_1d = np.uint16(np.random.rand(self.image_size_x*self.image_size_y)*256)
@@ -192,7 +191,6 @@ class ImageStreamUDP(object):
                 
                 #receive packet up to 8K Bytes
                 pkt = self.rxsocket.recv(9000)
-                logging.debug("Got Data from RXSocket")
                 
                 #extract trailer
                 pkt_len = len(pkt)

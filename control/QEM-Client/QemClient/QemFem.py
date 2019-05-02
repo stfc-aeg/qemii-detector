@@ -110,7 +110,7 @@ class QemFem():
     #Rob Halsall Code#
     
     def log_image_stream(self, file_name, num_images):
-        logging.debug("Logging image to file %s", file_name)
+        # logging.debug("Logging image to file %s", file_name)
         self.frame_gate_settings(num_images-1, 0)
         self.frame_gate_trigger()
         image_set = self.x10g_stream.get_image_set(num_images)
