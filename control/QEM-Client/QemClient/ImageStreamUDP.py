@@ -42,11 +42,12 @@ class ImageStreamUDP(object):
         self.ack = False
         
         self.image_size_p = 2
-        self.image_size_x = 288  # 256
-        self.image_size_y = 102  # 256
+        self.image_size_x = 256  # 256
+        self.image_size_y = 256  # 256
         self.image_mtu    = 8000
         self.num_pkt      = (self.image_size_x * self.image_size_y * self.image_size_p ) // self.image_mtu
         
+        self.num_pkt = 8  # OVERWRITE FOR DEBUGGING NEW SYSTEM
         self.sensor_image = np.uint8(np.random.rand(self.image_size_x,self.image_size_y)*256)
         self.sensor_image_1d = np.uint8(np.random.rand(self.image_size_x*self.image_size_y)*256)
         
@@ -185,12 +186,13 @@ class ImageStreamUDP(object):
         while img_num <= num_images-1:
             pkt_num = 0
             insert_point = 0
-            
+            logging.debug("NUM PKT: %d", self.num_pkt)
             while pkt_num <= self.num_pkt-1:
                 
                 
                 #receive packet up to 8K Bytes
                 pkt = self.rxsocket.recv(9000)
+                logging.debug("PACKETS RECEIVED. HUZZAH")
                 
                 #extract trailer
                 pkt_len = len(pkt)

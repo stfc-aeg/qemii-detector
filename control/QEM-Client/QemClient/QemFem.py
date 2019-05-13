@@ -106,11 +106,13 @@ class QemFem():
         # Shift 72 + 144 bits
         self.set_scsr(7,7,7,7)		# sub-cycle (1 bit)
         self.set_ivsr(0,0,27,27)		# cycle (8 bits)
+        
         logging.debug("SETTING UP CAMERA: DONE")
     #Rob Halsall Code#
     
     def log_image_stream(self, file_name, num_images):
         # logging.debug("Logging image to file %s", file_name)
+        logging.debug("AHHHHH WHAT IS FRAMES IT IS THIS: %d", num_images)
         self.frame_gate_settings(num_images-1, 0)
         self.frame_gate_trigger()
         image_set = self.x10g_stream.get_image_set(num_images)
@@ -124,20 +126,21 @@ class QemFem():
     def connect(self):
         #must be called as first method after instatiating class.
         self.x10g_rdma = RdmaUDP(
-            self.server_ctrl_ip_addr, 61650,
-            self.server_ctrl_ip_addr, 61651,
-            self.camera_ctrl_ip_addr, 61650,
-            self.camera_ctrl_ip_addr, 61651,
+            self.server_ctrl_ip_addr, 61650,  # 10.0.1.2
+            self.server_ctrl_ip_addr, 61651,  # 10.0.1.2
+            self.camera_ctrl_ip_addr, 61650,  # 10.0.1.102
+            self.camera_ctrl_ip_addr, 61651,  # 10.0.1.102
             2000000, 9000, 20)
         self.x10g_rdma.setDebug(False)
         self.x10g_rdma.ack = True
 
-        self.x10g_stream = ImageStreamUDP(
+        self.x10g_stream = ImageStreamUDP(  # DELETE ME WHEN NO LONGER NEEDED
             self.server_data_ip_addr, 61650,
             self.server_data_ip_addr, 61651,
             self.camera_data_ip_addr, 61650,
             self.camera_data_ip_addr, 61651,
             1*1000**3, 9000, 20)
+        self.x10g_stream.debug = True
 
     def disconnect(self):
         # should be called on shutdown to close sockets
@@ -398,6 +401,7 @@ class QemFem():
         return
 
     def frame_gate_trigger(self):
+        logging.debug("TRIGGER CAPTURE")
         self.x10g_rdma.write(self.frm_gate+0,0x0,          'frame gate trigger off')
         self.x10g_rdma.write(self.frm_gate+0,0x1,          'frame gate trigger on')
         return

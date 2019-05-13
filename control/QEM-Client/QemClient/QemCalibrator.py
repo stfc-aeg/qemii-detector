@@ -36,7 +36,7 @@ import matplotlib.pyplot as plt
 
 # from QemCam import *
 
-MAX_CALIBRATION = 4096  # Maximum value for the AUXSAMPLE registers. FOr calibration
+MAX_CALIBRATION = 1000  # Maximum value for the AUXSAMPLE registers. FOr calibration
 
 
 class QemCalibrator():
@@ -203,6 +203,8 @@ class QemCalibrator():
 
     def coarse_calibration_loop(self, delay, frames):
         self.set_backplane_register("AUXSAMPLE_COARSE", self.calibration_value)
+        # self.qem_fems[0].frame_gate_settings(frames-1, 0)
+        # self.qem_fems[0].frame_gate_trigger()
         self.qem_fems[0].log_image_stream(self.data_dir + 'coarse_AN/adc_cal_AUXSAMPLE_COARSE_%04d' % self.calibration_value, frames)  # odin data
         self.calibration_value += 1
         if self.calibration_value < MAX_CALIBRATION:
@@ -214,7 +216,9 @@ class QemCalibrator():
 
     def fine_calibration_loop(self, delay, frames):
         self.set_backplane_register("AUXSAMPLE_FINE", self.calibration_value)
-        self.qem_fems[0].log_image_stream(self.data_dir + "fine_AN/adc_cal_AUXSAMPLE_FINE_%04d" % self.calibration_value, frames)
+        self.qem_fems[0].frame_gate_settings(frames-1, 0)
+        self.qem_fems[0].frame_gate_trigger()
+        # self.qem_fems[0].log_image_stream(self.data_dir + "fine_AN/adc_cal_AUXSAMPLE_FINE_%04d" % self.calibration_value, frames)
         self.calibration_value += 1
         if self.calibration_value < MAX_CALIBRATION:
             IOLoop.instance().call_later(delay, self.fine_calibration_loop, delay, frames)
@@ -247,7 +251,7 @@ class QemCalibrator():
 
             # set the default starting point for the COARSE value
             self.set_backplane_register("AUXSAMPLE_COARSE", 728)  # 435
-            self.coarse_calibration_value = 0
+            self.calibration_value = 0
             # main loop to capture the data
             IOLoop.instance().add_callback(self.fine_calibration_loop, delay, frames) # run on IOLoop
             return
