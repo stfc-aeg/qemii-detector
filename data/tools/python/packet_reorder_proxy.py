@@ -60,14 +60,15 @@ class PacketReorderer():
     def process_loop(self):
         
         while True:
-            data, addr = self.source_socket.recvfrom(1024)  # 1024 is buffer size
+            data, addr = self.source_socket.recvfrom(10000)  # buffer size needs to be bigger than packet size
             data_array = bytearray(data)
             logging.debug("Data Size: %d", len(data_array))
             logging.debug("Data Source: %s", addr)
-
-            newdata = bytearray(data_array[-8:])  # get last 8 bytes of data
-            newdata.append(data_array[:-8])
-            self.dest_socket.sendto(newdata, (self.args.dest_addr, self.args.dest_port))
+            header = data_array[-8:]  # get last 8 bytes of data
+            logging.debug("HEADER: %s", ''.join('{:02X}'.format(x) for x in header))
+            header.extend(data_array[:-8])
+            logging.debug("New Data Size: %d", len(header))
+            self.dest_socket.sendto(header, (self.args.dest_addr, self.args.dest_port))
 
 
 class PacketReordererDefaults():
