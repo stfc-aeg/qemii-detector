@@ -48,7 +48,7 @@ class BackplaneAdapter(ApiAdapter):
         # Start the update loop
         self.update_loop()
 
-        print(self.backplane.param_tree)
+        #print(self.backplane.param_tree)
 
     @response_types('application/json', default='application/json')
     def get(self, path, request):
@@ -99,7 +99,7 @@ class BackplaneAdapter(ApiAdapter):
             status_code = 400
 
         logging.debug(data)
-        logging.debug(response)
+        #logging.debug(response)
 
         return ApiAdapterResponse(response, content_type=content_type,
                                   status_code=status_code)

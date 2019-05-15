@@ -21,7 +21,7 @@ class Backplane():
     Facilitates communication to the underlying hardware resources
     onbaord the Backplane.
     """
-    
+
     def __init__(self):
         #signal.signal(signal.SIGALRM, self.connect_handler)
         #signal.alarm(6)
@@ -57,9 +57,9 @@ class Backplane():
             1 = 0x51 = wiper 1 = VCM        = tpl0102[1]    = calculated voltage only
             2 = 0x51 = wiper 0 = DACEXTREF  = tpl0102[2]    = calculated current only
             3 = 0x52 = wiper 1 = N/C        = tpl0102[3]
-            4 = 0x52 = wiper 0 = VDD_RST    = tpl0102[4]    = calculated + measured with ADC
-            5 = 0x52 = wiper 1 = VRESET     = tpl0102[5]    = calculated + measured with ADC
-            6 = 0x53 = wiper 0 = VCTRL      = tpl0102[6]    = calculated + measured with ADC
+            4 = 0x52 = wiper 0 = VDD_RST    = tpl0102[4]    = calculated + measured with ADC    = self.voltages[7]
+            5 = 0x52 = wiper 1 = VRESET     = tpl0102[5]    = calculated + measured with ADC    = self.voltages[11]
+            6 = 0x53 = wiper 0 = VCTRL      = tpl0102[6]    = calculated + measured with ADC    = self.voltages[10](-ve) self.voltages[12](+ve)
             7 = 0x53 = wiper 1 = N/C        = tpl0102[7]
             """
             
@@ -75,7 +75,7 @@ class Backplane():
             self.i2c_init() # initialise i2c devices to the list variables above & initialise defaults
 
             """"BELOW: local variables for control & initialise defaults"""
-            self.update = True #This is used to enable or dissable to I2C access to the hardware
+            self.update = True #This is used to enable or dissable to I2C access to the hardware (could be used to dissable when taking data)
             self.MONITOR_RESISTANCE = [2.5, 1, 1, 1, 10, 1, 10, 1, 1, 1, 10, 1, 10] #this list defines the resistance of the current-monitoring resistor in the circuit multiplied by 100 (for the amplifier)
             self.power_good = [False] * 8 #Power goor array to indicate the status of the power suppy power-good indicators
             self.voltChannelLookup = ((0,2,3,4,5,6,7),(0,2,4,5,6,7)) #this is used to lookup the chip and channel for the voltage and current measurements
@@ -159,8 +159,7 @@ class Backplane():
                 #ABOVE: need to add set methods in the parameter tree
                 "enable":(lambda: self.update, self.set_update, {"description": "Controls I2C activity on the backplane"}),
                 "clock(MHz)":(lambda : self.clock_frequency, self.set_clock_frequency,{"description": "Controls the main clock Reference", "units": "MHz"}), 
-                "dacextref":{   "current":(self.get_dacextref, self.set_dacextref_current
-        , {"description": "Controls the DAC external current reference", "units": "uA"}),
+                "dacextref":{   "current":(self.get_dacextref, self.set_dacextref_current, {"description": "Controls the DAC external current reference", "units": "uA"}),
                                 "register":(lambda: self.adjust_resistor_raw[2], self.set_dacextref_register_value, {"description":"register that controls the external reference"})
                 },
                 "status":{
@@ -197,9 +196,9 @@ class Backplane():
         self.voltages_raw[13] = self.ad5694.read_dac_value(1)
         self.voltages_raw[14] = self.ad5694.read_dac_value(4)
         #below: AUXSAMPLE : calculate the voltages based on the hardware constants set by the feeback resistors in the schematics
-        self.voltages[13] = format(self.voltages_raw[13] * 0.0003734, '.3f') #constant required as the multiplier for the hardware (see schematics)
-        self.voltages[14] = format(self.voltages_raw[14] * 0.00002, '.3f') #constant required as the multiplier for the hardware (see schematics)
-        self.voltages[15] = format(float(float(self.voltages[13]) + float(self.voltages[14]) + float(0.197)), '.3f') #constant is the voltage o/p from the op-amp when both i/p are zero
+        self.voltages[13] = self.voltages_raw[13] * 0.0003734 #constant required as the multiplier for the hardware (see schematics)
+        self.voltages[14] = self.voltages_raw[14] * 0.00002 #constant required as the multiplier for the hardware (see schematics)
+        self.voltages[15] = self.voltages[13] + self.voltages[14] + 0.197 #constant is the voltage o/p from the op-amp when both i/p are zero
 
         self.mcp23008.append(self.tca.attach_device(3, MCP23008, 0x20, busnum=1))
         self.mcp23008.append(self.tca.attach_device(3, MCP23008, 0x21, busnum=1))
@@ -226,27 +225,29 @@ class Backplane():
         #self.adjust_voltage[6]=-3.775 + (1.225/22600 + .35*.000001) * (390 * self.adjust_resistor_raw[6] + 32400)
 
         self.load_defaults()
-    
-
-
 
     #Functions below are used to modify the register value on the variable supplies
+    #VDD_RST & VRESET are voltages monitored by the ADC's on the module
     def set_vdd_rst_register_value(self, value):
+        """Method to change the register value of VDD_RST"""
         self.tpl0102[2].set_wiper(0, value)
         self.adjust_resistor_raw[4] = self.tpl0102[2].get_wiper(0)
     def set_vdd_rst_voltage(self, value):
+        """Method to change the voltage value of VDD_RST"""
         self.tpl0102[2].set_wiper(0, int(1+(18200/0.0001)*(value-1.78)/(390*18200-390*(value-1.78)/0.0001)))
         self.adjust_resistor_raw[4] = self.tpl0102[2].get_wiper(0)
-
     def set_vreset_register_value(self, value):
+        """Method to change the register value of VRESET"""
         self.tpl0102[2].set_wiper(1, value)
         self.adjust_resistor_raw[5] = self.tpl0102[2].get_wiper(1)
     def set_vreset_voltage(self, value):
+        """Method to change the voltage value of VRESET"""
         self.tpl0102[2].set_wiper(1, int(1+(49900/0.0001)*value/(390*49900-390*value/0.0001)))
         self.adjust_resistor_raw[5] = self.tpl0102[2].get_wiper(1)
     
+    # The following voltages are calculated and NOT monitored with an ADC on the module
     def calc_vctrl_voltage(self, value):
-        return format(-3.775 + (1.225/22600 + .35*.000001) * (390 * self.adjust_resistor_raw[6] + 32400), '.3f')
+        return -3.775 + (1.225/22600 + .35*.000001) * (390 * self.adjust_resistor_raw[6] + 32400)
     def set_vctrl_register_value(self, value):
         self.tpl0102[3].set_wiper(0, value)
         self.adjust_resistor_raw[6] = self.tpl0102[3].get_wiper(0)
@@ -256,42 +257,39 @@ class Backplane():
         self.adjust_resistor_raw[6] = self.tpl0102[3].get_wiper(0)
         self.adjust_voltage[6]=self.calc_vctrl_voltage(6)
 
-
+    # AUX & VCM use the same calculation for the voltage / register values
     def calc_aux_vcm_voltage(self, value):
-        return format(3.3 * (390 * self.adjust_resistor_raw[value]) / (390 * self.adjust_resistor_raw[value] + 32000), '.3f')
+        """Same calculation required for AEXRESET and VCM voltages on the backplane"""
+        return 3.3 * (390 * self.adjust_resistor_raw[value]) / (390 * self.adjust_resistor_raw[value] + 32000)
     def calc_aux_vcm_register(self, value):
+        """Same calculation required for AUXREST and VCM to calculate the register value from a voltage"""
         return int(0.5+(32000/3.3)*value/(390-390*value/3.3))
-    def set_register_value(self, TPL, wiper, vector, value):
-        self.tpl0102[TPL].set_wiper(wiper, value)
+    def set_aux_vcm_register_value(self, wiper, vector, value):
+        """Sets the register value, pass vector number and value"""
+        self.tpl0102[0].set_wiper(wiper, value)
         self.adjust_resistor_raw[vector] = self.tpl0102[0].get_wiper(wiper)
-        self.adjust_voltage[vector] = self.calc_aux_vcm_voltage(resistor_num)
+        self.adjust_voltage[vector] = self.calc_aux_vcm_voltage(vector)
+    def set_aux_vcm_voltage(self, wiper, vector, value):
+        """Sets the voltage for AUXSAMPLE and VCM"""
+        self.tpl0102[0].set_wiper(wiper, self.calc_aux_vcm_register(value))
+        self.adjust_resistor_raw[vector] = self.tpl0102[0].get_wiper(wiper)
+        self.adjust_voltage[vector] = self.calc_aux_vcm_voltage(vector)
 
+    # wrappers from the paramter tree for AUXRESET and VCM
     def set_auxrest_register_value(self, value):
-        resistor_num=0
-        self.set_register_value(0, 0, 0, value)
-        # self.tpl0102[0].set_wiper(0, value)
-        # self.adjust_resistor_raw[0] = self.tpl0102[0].get_wiper(0)
-        # self.adjust_voltage[0] = self.calc_aux_vcm_voltage(resistor_num)
+        """wrapper for auxreset, pass wiper=0, vector=0, value"""
+        self.set_aux_vcm_register_value(0, 0, value)
     def set_auxreset_voltage(self, value):
-        resistor_num=0
-        self.tpl0102[0].set_wiper(0, self.calc_aux_vcm_register(value))
-        self.adjust_resistor_raw[0] = self.tpl0102[0].get_wiper(0)
-        self.adjust_voltage[0] = self.calc_aux_vcm_voltage(resistor_num)
-
-    
+        """Wrapper for auxreset to set a voltage, pass wiper=0, vector=0, value"""
+        self.set_aux_vcm_voltage(0,0,value)
     def set_vcm_register_value(self, value):
-        resistor_num=1
-        self.tpl0102[0].set_wiper(1, value)
-        self.adjust_resistor_raw[1] = self.tpl0102[0].get_wiper(1)
-        self.adjust_voltage[1] = self.calc_aux_vcm_voltage(resistor_num)
+        """Set VCM register value wrapper, pass wiper=1, vector = 1, value"""
+        self.set_aux_vcm_register_value(1, 1, value)
     def set_vcm_voltage(self, value):
-        resistor_num=1
-        self.tpl0102[0].set_wiper(1, self.calc_aux_vcm_register(value))
-        self.adjust_resistor_raw[resistor_num] = self.tpl0102[0].get_wiper(1)
-        self.adjust_voltage[resistor_num] = self.calc_aux_vcm_voltage(resistor_num)
+        "set VCM voltage wrapper, pass wiper, vector, value"
+        self.set_aux_vcm_voltage(1,1,value)
 
-    
-
+    # This function sets the default settings for the backplane (known working set)
     def load_defaults(self):
         """
         AUXRESET=1.9V
@@ -308,9 +306,6 @@ class Backplane():
         self.set_vreset_voltage(1.3)
         self.set_dacextref_current(11)
 
-
-
-
     #clock functions
     def get_clock_frequency(self):
         """This returns the clock frequency in MHz"""
@@ -319,7 +314,6 @@ class Backplane():
     def set_clock_frequency(self, value):
         """This sets the clock frequency in MHz"""
         self.clock_frequency = value
-        
     
     def get(self, path, wants_metadata=False):
         """Main get method for the parameter tree"""
@@ -336,6 +330,7 @@ class Backplane():
 
     #functions to control the external chip current DACEXTREF - START
     def set_dacextref_register_value(self, value):
+        """Method to set the register value of the DAXEXTREF, attached to list tpl0102[1] and wiper 0"""
         self.tpl0102[1].set_wiper(0, value)
         self.adjust_resistor_raw[2] = self.tpl0102[1].get_wiper(0)
     def get_dacextref(self):
@@ -345,38 +340,40 @@ class Backplane():
         """
         return (400 * (390 * self.adjust_resistor_raw[2]) / (390 * self.adjust_resistor_raw[2] + 294000))
     def set_dacextref_current(self, value):
-        """This sets the DAC external current reference with a specific current value"""
+        """This sets the DAC external current reference with a specific current value, 294K resistor, 390 Ohm's/step, 400mV reference, see pc3611m1 pg.6"""
         self.adjust_resistor_raw[2] = int(1+(294000/400)*value/(390-390*value/400))
         self.set_dacextref_register_value(self.adjust_resistor_raw[2])
         #functions to control the external chip current DACEXTREF - END
 
     
     #definitions to set coarse auxsample (1)
+    def calc_coarse_common(self):
+        self.voltages[13] = self.voltages_raw[13] * 0.0003734
+        self.voltages[15] = self.voltages[13] + self.voltages[14] + 0.197
     def set_coarse_register(self, value):
         """This function sets the coarse register value"""
         self.voltages_raw[13] = value
-        self.voltages[13] = self.voltages_raw[13] * 0.0003734
-        self.voltages[15] = self.voltages[13] + self.voltages[14] + 0.197
+        self.calc_coarse_common()
         self.ad5694.set_from_value(1, value)
     def set_coarse_voltage(self, value):
         """This function sets the coarse voltage value"""
         self.voltages_raw[13] = int(value / 0.0003734)
-        self.voltages[13] = self.voltages_raw[13] * 0.0003734
-        self.voltages[15] = self.voltages[13] + self.voltages[14] + 0.197
+        self.calc_coarse_common()
         self.ad5694.set_from_voltage(1, value)
 
     #definitions to set fine auxsample (4)
+    def calc_fine_common(self):
+        self.voltages[14] = self.voltages_raw[14] * 0.00002
+        self.voltages[15] = self.voltages[13] + self.voltages[14] + 0.197
     def set_fine_register(self, value):
         """This sets the fine register value"""
         self.voltages_raw[14] = value
-        self.voltages[14] = self.voltages_raw[14] * 0.00002
-        self.voltages[15] = self.voltages[13] + self.voltages[14] + 0.197
+        self.calc_fine_common()
         self.ad5694.set_from_value(4, value) 
     def set_fine_voltage(self, value):
         """This sets the fine voltage value"""
         self.voltages_raw[14] = int(value / 0.00002)
-        self.voltages[14] = self.voltages_raw[14] * 0.00002
-        self.voltages[15] = self.voltages[13] + self.voltages[14] + 0.197
+        self.calc_fine_common()
         self.ad5694.set_from_voltage(4, value)
 
     
@@ -394,22 +391,22 @@ class Backplane():
         for i in range(7):
             j = self.voltChannelLookup[0][i]
             self.voltages_raw[i] = int(self.ad7998[1].read_input_raw(j) & 0xfff)
-            self.voltages[i] = format(self.voltages_raw[i] * 3 / 4095.0, '.3f')
+            self.voltages[i] = self.voltages_raw[i] * 3 / 4095.0
         for i in range(6):
             j = self.voltChannelLookup[1][i]
             self.voltages_raw[i + 7] = int(self.ad7998[3].read_input_raw(j) & 0xfff)
-            self.voltages[i + 7] = format(self.voltages_raw[i + 7] * 5 / 4095.0, '.3f')
+            self.voltages[i + 7] = self.voltages_raw[i + 7] * 5 / 4095.0
     
     def update_currents(self):
         """Method to update the current vectors"""
         for i in range(7):
             j = self.voltChannelLookup[0][i]
             self.currents_raw[i] = int(self.ad7998[0].read_input_raw(j) & 0xfff)
-            self.currents[i] = format(self.currents_raw[i] / self.MONITOR_RESISTANCE[i] * (5000 / 4095.0), '.3f')
+            self.currents[i] = self.currents_raw[i] / self.MONITOR_RESISTANCE[i] * (5000 / 4095.0)
 
         for i in range(6):
             j = self.voltChannelLookup[1][i]
             self.currents_raw[i + 7] = int(self.ad7998[2].read_input_raw(j) & 0xfff)
-            self.currents[i + 7] = format(self.currents_raw[i + 7] / self.MONITOR_RESISTANCE[i + 7] * 5000 / 4095.0, '.3f')
+            self.currents[i + 7] = self.currents_raw[i + 7] / self.MONITOR_RESISTANCE[i + 7] * 5000 / 4095.0
         
 
