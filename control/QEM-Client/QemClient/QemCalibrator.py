@@ -42,6 +42,8 @@ class QemCalibrator():
         self.qem_fems = fems
 
         self.max_calibration = 10
+        self.min_calibration = 0
+        self.calibration_step = 1
 
         self.calibration_value = 0
 
@@ -52,11 +54,22 @@ class QemCalibrator():
             "start_coarse_calibrate": (None, self.adc_calibrate_coarse),
             "start_coarse_plot": (None, self.plot_coarse),
             "start_fine_plot": (None, self.plot_fine),
-            "max_calibration": (lambda: self.max_calibration, self.set_max_calib)
+            "calibration_vals": {
+                "max": (lambda: self.max_calibration, self.set_max_calib),
+                "min": (lambda: self.min_calibration, self.set_min_calib),
+                "step": (lambda: self.calibration_step),
+                "current": (lambda: self.calibration_value, None)
+            }
         })
 
     def set_max_calib(self, value):
         self.max_calibration = value
+    
+    def set_min_calib(self, value):
+        self.min_calibration = value if value > -1 else 0
+
+    def set_calib_step(self, value):
+        self.calibration_step = value
 
     def initialize(self, adapters):
         """Receives references to the other adapters needed for calibration
@@ -185,7 +198,7 @@ class QemCalibrator():
                 logging.debug("idelay locked %-8X", locked)
 
             self.set_backplane_register("AUXSAMPLE_FINE", self.max_calibration - 1)  # setting AUXSAMPLE FINE to MAX
-            self.calibration_value = 0
+            self.calibration_value = self.min_calibration
             # MAIN loop to capture data
             IOLoop.instance().add_callback(self.coarse_calibration_loop, delay, frames)  # runs loop on main IO loop to avoid multi-threaded issues
             return
@@ -214,7 +227,7 @@ class QemCalibrator():
 
             # set the default starting point for the COARSE value
             self.set_backplane_register("AUXSAMPLE_COARSE", 728)  # 435
-            self.calibration_value = 0
+            self.calibration_value = self.min_calibration
             # main loop to capture the data
             IOLoop.instance().add_callback(self.fine_calibration_loop, delay, frames) # run on IOLoop
             return
@@ -224,7 +237,7 @@ class QemCalibrator():
         self.qem_fems[0].frame_gate_settings(frames-1, 0)
         self.qem_fems[0].frame_gate_trigger()
         # self.qem_fems[0].log_image_stream(self.data_dir + 'coarse_AN/adc_cal_AUXSAMPLE_COARSE_%04d' % self.calibration_value, frames)  # odin data
-        self.calibration_value += 1
+        self.calibration_value += self.calibration_step
         if self.calibration_value < self.max_calibration:
             IOLoop.instance().call_later(delay, self.coarse_calibration_loop, delay, frames)
         else:
@@ -237,7 +250,7 @@ class QemCalibrator():
         self.qem_fems[0].frame_gate_settings(frames-1, 0)
         self.qem_fems[0].frame_gate_trigger()
         # self.qem_fems[0].log_image_stream(self.data_dir + "fine_AN/adc_cal_AUXSAMPLE_FINE_%04d" % self.calibration_value, frames)
-        self.calibration_value += 1
+        self.calibration_value += self.calibration_step
         if self.calibration_value < self.max_calibration:
             IOLoop.instance().call_later(delay, self.fine_calibration_loop, delay, frames)
         else:
