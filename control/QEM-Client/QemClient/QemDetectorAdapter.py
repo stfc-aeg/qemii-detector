@@ -18,6 +18,12 @@ from tornado.escape import json_decode
 
 from odin.adapters.adapter import ApiAdapter, ApiAdapterResponse, request_types, response_types
 from odin.adapters.parameter_tree import ParameterTree, ParameterTreeError
+
+from odin.adapters.proxy import ProxyAdapter
+from odin_data.live_view_adapter import LiveViewAdapter
+from odin_data.frame_processor_adapter import FrameProcessorAdapter
+from odin_data.frame_receiver_adapter import FrameReceiverAdapter
+
 from odin._version import get_versions
 
 from QemCalibrator import QemCalibrator
@@ -41,6 +47,7 @@ class QemDetectorAdapter(ApiAdapter):
         # Intialise superclass
         super(QemDetectorAdapter, self).__init__(**kwargs)
         self.qem_detector = QemDetector()
+        self.adapters = {}
         logging.debug('QemDetector Adapter loaded')
 
     @response_types('application/json', default='application/json')
@@ -115,7 +122,21 @@ class QemDetectorAdapter(ApiAdapter):
     def initialize(self, adapters):
         # get references to required adapters
         # pass those references to the classes that need to use em
-        self.qem_detector.calibrator.initialize(adapters)
+        for name, adapter in adapters.items():
+            if isinstance(adapter, ProxyAdapter):
+                logging.debug("%s is Proxy Adapter", name)
+                self.adapters["proxy"] = adapter
+            elif isinstance(adapter, FrameProcessorAdapter):
+                logging.debug("%s is FP Adapter", name)
+                self.adapters["fp"] = adapter
+            elif isinstance(adapter, FrameReceiverAdapter):
+                logging.debug("%s is FR Adapter", name)
+                self.adapters["fr"] = adapter
+            elif isinstance(adapter, LiveViewAdapter):
+                logging.debug("%s is Live View Adapter", name)
+                self.adapters["liveview"] = adapter
+
+        self.qem_detector.calibrator.initialize(self.adapters)
 
 
 class QemDetectorError(Exception):
@@ -138,8 +159,7 @@ class QemDetector():
 # camera_data_ip = 10.0.2.102
     def __init__(self):
         self.daq = QemDAQ()
-        #BACKUP VECTOR FILE REFERENCE: "/aeg_sw/work/projects/qem/python/03052018/QEM_D4_396_ADC_aSpectBias_AUXRSTsampled_ADCbuf_05_iCbias_11_iFbias_20.txt"
-        self.vector_file = "/aeg_sw/work/projects/qem/python/03052018/QEM_D4_198_ADC_10_icbias21_ifbias14.txt"
+        self.vector_file = "/aeg_sw/work/projects/qem/python/03052018/QEM_D4_198_ADC_10_icbias5_ifbias24.txt"
         fems = [QemFem(
             ip_address="192.168.0.122",
             port="8070",
@@ -148,13 +168,18 @@ class QemDetector():
             camera_ctrl_ip_addr="10.0.1.102",
             server_data_ip_addr="10.0.2.2",
             camera_data_ip_addr="10.0.2.102")]
+
+        fem_tree = {}
         for fem in fems:
             fem.connect()
-            fem.load_vectors_from_file(self.vector_file)
+            fem.setup_camera()
+            # fem.load_vectors_from_file(self.vector_file)
+            fem_tree["fem_{}".format(fem.id)] = fem.param_tree
         self.calibrator = QemCalibrator(0, "/scratch/qem/QEM_AN_CALIBRATION/", fems)  # TODO: replace hardcoded directory
 
         self.param_tree = ParameterTree({
-            "calibrator": self.calibrator.param_tree
+            "calibrator": self.calibrator.param_tree,
+            "fems": fem_tree
         })
 
     def get(self, path):
