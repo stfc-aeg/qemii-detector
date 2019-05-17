@@ -28,6 +28,8 @@ class TPL0102(I2CDevice):
         self.__tot_resistance = 100.0
         self.__low_pd = [0.0,0.0]
         self.__high_pd = [3.3, 3.3]
+        self.disable_shutdown(True)
+        self.set_non_volatile(False)
 
     def set_total_resistance(self, resistance):
         """Sets the total resistance across the potentiometer for set_resistance()
@@ -84,6 +86,10 @@ class TPL0102(I2CDevice):
 
         if not wiper in [0,1]:
                         raise I2CException("Select either wiper 0 or wiper 1")
+        if position > 255:
+                        raise I2CException("Value greater than 255, range is 0 - 255")   
+        if position < 0:
+                        raise I2CException("Value less than 0, range is 0 - 255")           
 
         self.__wiper_pos[wiper] = int(position)
         self.write8(wiper, self.__wiper_pos[wiper])
@@ -114,9 +120,9 @@ class TPL0102(I2CDevice):
 
         self.write8(16, dat)
 
-    def set_shutdown(self, enable):
+    def disable_shutdown(self, enable):
         """Sets whether to use shutdown mode
-        :param enable: true - device enters shutdown mode, false - normal operation
+        :param enable: False - device enters shutdown mode, True - normal operation
         """
 
         dat = self.readU8(16)
