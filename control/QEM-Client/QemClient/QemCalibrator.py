@@ -6,11 +6,17 @@ Sophie Kirkham, Application Engineering Group, STFC. 2019
 Adam Neaves, Application Engineering Group, STFC. 2019
 """
 
-import time
 import logging
 import glob
 import h5py
-# import os
+
+# set logging for MATPLOTLIB separatly to avoid a lot of debug spam
+mpl_logger = logging.getLogger('matplotlib')
+mpl_logger.setLevel(logging.WARNING)
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+
 from tornado.ioloop import IOLoop
 from tornado.concurrent import run_on_executor
 from concurrent import futures
@@ -18,25 +24,8 @@ from concurrent import futures
 from odin.adapters.adapter import ApiAdapterRequest
 from odin.adapters.parameter_tree import ParameterTree
 from odin.adapters.proxy import ProxyAdapter
-from odin_data.odin_data_adapter import OdinDataAdapter
-# import cv2
-# import sys
-# import pprint
-# import pickle
-# import numpy as np
-# set logging for MATPLOTLIB separatly to avoid a lot of debug spam
-mpl_logger = logging.getLogger('matplotlib')
-mpl_logger.setLevel(logging.WARNING)
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-# from matplotlib.ticker import MaxNLocator
-
-# from concurrent import futures
-
-# from QemCam import *
-
-MAX_CALIBRATION = 1000  # Maximum value for the AUXSAMPLE registers. FOr calibration
+from odin_data.frame_processor_adapter import FrameProcessorAdapter
+from odin_data.frame_receiver_adapter import FrameReceiverAdapter
 
 
 class QemCalibrator():
@@ -52,6 +41,8 @@ class QemCalibrator():
         self.data_dir = data_dir
         self.qem_fems = fems
 
+        self.max_calibration = 10
+
         self.calibration_value = 0
 
         self.param_tree = ParameterTree({
@@ -60,11 +51,12 @@ class QemCalibrator():
             "start_fine_calibrate": (None, self.adc_calibrate_fine),
             "start_coarse_calibrate": (None, self.adc_calibrate_coarse),
             "start_coarse_plot": (None, self.plot_coarse),
-            "start_fine_plot": (None, self.plot_fine)
+            "start_fine_plot": (None, self.plot_fine),
+            "max_calibration": (lambda: self.max_calibration, self.set_max_calib)
         })
 
-    def set_dummy(self, value):
-        self.dummy = value
+    def set_max_calib(self, value):
+        self.max_calibration = value
 
     def initialize(self, adapters):
         """Receives references to the other adapters needed for calibration
@@ -74,9 +66,6 @@ class QemCalibrator():
             if isinstance(adapter, ProxyAdapter):
                 self.proxy_adapter = adapter
                 logging.debug("Proxy Adapter referenced by Calibrator")
-            if isinstance(adapter, OdinDataAdapter):
-                self.odin_data_adapter = adapter
-                logging.debug("Odin Data Adapter referenced by Calibrator")
 
     def get_cal_complete(self):
         """ getter method for the calibration completed flag
@@ -113,7 +102,7 @@ class QemCalibrator():
                 fine_data.append((j[33] & 63))  # extract the fine bits
         return fine_data
 
-    def generateFineVoltages(self, length):
+    def generate_fine_voltages(self, length):
         """ generates the voltages for a given length
         @param length: the length to use to generate voltages.
         @returns : an array of voltages
@@ -126,7 +115,7 @@ class QemCalibrator():
             voltages.append(float(offset + (i * 0.00002)))
         return voltages
 
-    def getcoarsebitscolumn(self, input):
+    def get_coarse_bits_column(self, input):
         """ extracts the coarse bits for a column for a single adc
         @param input : the h5 file to extract the data from
         @returns : a list of the coarse bits.
@@ -138,7 +127,7 @@ class QemCalibrator():
                 new_list.append((j[33] & 1984) >> 6)  # extract the coarse bits
         return new_list
 
-    def Listh5Files(self, adc_type):
+    def list_h5_files(self, adc_type):
         """ lists all of the H5 files for a given adc cal type in /scratch/qem
         sorts the found files to numerical ascending order.
         @param adc_type : string value - fine/coarse
@@ -150,7 +139,7 @@ class QemCalibrator():
         filenames.sort()
         return filenames
 
-    def generatecoarsevoltages(self, length):
+    def generate_coarse_voltages(self, length):
         """ generates the coarse voltages for a given length
         @param length: the length to use for generating the voltages
         @returns: the list of coarse voltages
@@ -176,7 +165,7 @@ class QemCalibrator():
         """ Begin adc calibration of the coarse values
         @param calibrate: boolean value to trigger calibration
         gets the adc delay value and adc frame value before setting up
-        the qemcam. Performs adc calibration sweep from 0-1023 taking images
+        the qemcam. Performs adc calibration sweep from 0-4095 taking images
         and storing them in data_diretory + /coarse
         """
 
@@ -195,37 +184,11 @@ class QemCalibrator():
                 locked = fem.get_idelay_lock_status()  # qem fem reference
                 logging.debug("idelay locked %-8X", locked)
 
-            self.set_backplane_register("AUXSAMPLE_FINE", MAX_CALIBRATION - 1)  # setting AUXSAMPLE FINE to MAX
+            self.set_backplane_register("AUXSAMPLE_FINE", self.max_calibration - 1)  # setting AUXSAMPLE FINE to MAX
             self.calibration_value = 0
             # MAIN loop to capture data
             IOLoop.instance().add_callback(self.coarse_calibration_loop, delay, frames)  # runs loop on main IO loop to avoid multi-threaded issues
             return
-
-    def coarse_calibration_loop(self, delay, frames):
-        self.set_backplane_register("AUXSAMPLE_COARSE", self.calibration_value)
-        # self.qem_fems[0].frame_gate_settings(frames-1, 0)
-        # self.qem_fems[0].frame_gate_trigger()
-        self.qem_fems[0].log_image_stream(self.data_dir + 'coarse_AN/adc_cal_AUXSAMPLE_COARSE_%04d' % self.calibration_value, frames)  # odin data
-        self.calibration_value += 1
-        if self.calibration_value < MAX_CALIBRATION:
-            IOLoop.instance().call_later(delay, self.coarse_calibration_loop, delay, frames)
-        else:
-            logging.debug("Calibration Complete")
-            self.set_cal_complete(True)
-        return
-
-    def fine_calibration_loop(self, delay, frames):
-        self.set_backplane_register("AUXSAMPLE_FINE", self.calibration_value)
-        self.qem_fems[0].frame_gate_settings(frames-1, 0)
-        self.qem_fems[0].frame_gate_trigger()
-        # self.qem_fems[0].log_image_stream(self.data_dir + "fine_AN/adc_cal_AUXSAMPLE_FINE_%04d" % self.calibration_value, frames)
-        self.calibration_value += 1
-        if self.calibration_value < MAX_CALIBRATION:
-            IOLoop.instance().call_later(delay, self.fine_calibration_loop, delay, frames)
-        else:
-            logging.debug("Calibration Complete")
-            self.set_cal_complete(True)
-        return
 
     def adc_calibrate_fine(self, calibrate):
         """ perform adc calibration of the fine values
@@ -256,6 +219,32 @@ class QemCalibrator():
             IOLoop.instance().add_callback(self.fine_calibration_loop, delay, frames) # run on IOLoop
             return
 
+    def coarse_calibration_loop(self, delay, frames):
+        self.set_backplane_register("AUXSAMPLE_COARSE", self.calibration_value)
+        self.qem_fems[0].frame_gate_settings(frames-1, 0)
+        self.qem_fems[0].frame_gate_trigger()
+        # self.qem_fems[0].log_image_stream(self.data_dir + 'coarse_AN/adc_cal_AUXSAMPLE_COARSE_%04d' % self.calibration_value, frames)  # odin data
+        self.calibration_value += 1
+        if self.calibration_value < self.max_calibration:
+            IOLoop.instance().call_later(delay, self.coarse_calibration_loop, delay, frames)
+        else:
+            logging.debug("Calibration Complete")
+            self.set_cal_complete(True)
+        return
+
+    def fine_calibration_loop(self, delay, frames):
+        self.set_backplane_register("AUXSAMPLE_FINE", self.calibration_value)
+        self.qem_fems[0].frame_gate_settings(frames-1, 0)
+        self.qem_fems[0].frame_gate_trigger()
+        # self.qem_fems[0].log_image_stream(self.data_dir + "fine_AN/adc_cal_AUXSAMPLE_FINE_%04d" % self.calibration_value, frames)
+        self.calibration_value += 1
+        if self.calibration_value < self.max_calibration:
+            IOLoop.instance().call_later(delay, self.fine_calibration_loop, delay, frames)
+        else:
+            logging.debug("Calibration Complete")
+            self.set_cal_complete(True)
+        return
+
     @run_on_executor(executor='thread_executor')
     def plot_fine(self, plot):
         """ plots the fine bit data from the adc fine calibration onto a graph
@@ -265,17 +254,17 @@ class QemCalibrator():
         a new set of axes each time to ensure no overwriting.Saves the file to
         /aeg_sw/work/projects/qem/python/03052018/fine.png
         """
-        logging.debug("START PLOT FINE")								  
+        logging.debug("START PLOT FINE")
         self.set_plot_complete(False)
         filelist = []
-        filelist = self.Listh5Files("fine_AN")
+        filelist = self.list_h5_files("fine_AN")
         # voltages for the plot
         f_voltages = []
-        f_voltages = self.generateFineVoltages(len(filelist))
+        f_voltages = self.generate_fine_voltages(len(filelist))
         # averaged data for the plot
         f_averages = []
 
-        # extract the data from each file in the folder						   
+        # extract the data from each file in the folder
         for i in filelist:
             # open the file in the filelist array
             f = h5py.File(i, 'r')
@@ -323,17 +312,17 @@ class QemCalibrator():
         # array of column averages for the plot
         averages = []
         # generate a list of files to process
-        filelist = self.Listh5Files("coarse_AN")
+        filelist = self.list_h5_files("coarse_AN")
         logging.debug(".")
         # populate the voltage array
-        voltages = self.generatecoarsevoltages(len(filelist))
+        voltages = self.generate_coarse_voltages(len(filelist))
         logging.debug(".")
         # process the files in filelist
         for i in filelist:
             f = h5py.File(i, 'r')
             a_group_key = list(f.keys())[0]
             data = list(f[a_group_key])
-            column = self.getcoarsebitscolumn(data)
+            column = self.get_coarse_bits_column(data)
             # average the data
             average = sum(column) / len(column)
             averages.append(average)

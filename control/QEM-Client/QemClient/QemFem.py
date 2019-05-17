@@ -13,6 +13,7 @@ from tornado.concurrent import run_on_executor
 from tornado.escape import json_decode
 from RdmaUDP import RdmaUDP
 from ImageStreamUDP import ImageStreamUDP
+from odin.adapters.parameter_tree import ParameterTree, ParameterTreeError
 
 BUSY = 1
 FREE = 0
@@ -28,7 +29,11 @@ class QemFem():
     Controls and configures each FEM-II module ready for a DAQ via UDP.
     """
     
-    def __init__(self, ip_address, port, id, server_ctrl_ip_addr, camera_ctrl_ip_addr, server_data_ip_addr, camera_data_ip_addr):
+    def __init__(self, ip_address, port, id,
+                 server_ctrl_ip_addr, camera_ctrl_ip_addr,
+                 server_data_ip_addr, camera_data_ip_addr, 
+                 vector_file_dir="/aeg_sw/work/projects/qem/python/03052018/",
+                 vector_file="QEM_D4_198_ADC_10_icbias5_ifbias24.txt"):
 
         self.ip_address = ip_address
         self.port = port
@@ -42,6 +47,9 @@ class QemFem():
         self.server_data_ip_addr = server_data_ip_addr
         self.camera_data_ip_addr = camera_data_ip_addr
 
+        self.vector_file_dir = vector_file_dir
+        self.selected_vector_file = vector_file
+        
         # qem 1 base addresses
         self.udp_10G_data    = 0x00000000
         self.udp_10g_control = 0x10000000
@@ -74,6 +82,21 @@ class QemFem():
         #
         self.frame_time = 1
 
+        self.param_tree = ParameterTree({
+            "ip_addr": (self.get_address, None),
+            "port": (self.get_port, None),
+            "vector_file_dir": (self.get_vector_file_dir, None),
+            "selected_vector_file": (self.get_selected_vector_file, None),
+            "load_vector_file": (None, self.load_vectors_from_file),
+            "setup_camera": (None, self.setup_camera)
+        })
+
+    def get_vector_file_dir(self):
+        return self.vector_file_dir
+
+    def get_selected_vector_file(self):
+        return self.selected_vector_file
+
     def get_address(self):
         return self.ip_address
 
@@ -86,7 +109,7 @@ class QemFem():
     def get_state(self):
         return self.state
 
-    def setup_camera(self):
+    def setup_camera(self, put_string="None"):
         logging.debug("SETTING UP CAMERA")
         self.set_ifg()
         #self.set_clock() wasn't implemented in QEM-I
@@ -111,16 +134,17 @@ class QemFem():
     #Rob Halsall Code#
     
     def log_image_stream(self, file_name, num_images):
+        logging.warning("Depreciated method 'log_image_stream'. Use Odin Data for data path")
         # logging.debug("Logging image to file %s", file_name)
-        logging.debug("AHHHHH WHAT IS FRAMES IT IS THIS: %d", num_images)
-        self.frame_gate_settings(num_images-1, 0)
-        self.frame_gate_trigger()
-        image_set = self.x10g_stream.get_image_set(num_images)
-        #write to hdf5 file
-        file_name = file_name + '.h5'
-        h5f = h5py.File(file_name, 'w')
-        h5f.create_dataset('dataset_1', data=image_set)
-        h5f.close()
+        # logging.debug("AHHHHH WHAT IS FRAMES IT IS THIS: %d", num_images)
+        # self.frame_gate_settings(num_images-1, 0)
+        # self.frame_gate_trigger()
+        # image_set = self.x10g_stream.get_image_set(num_images)
+        # #write to hdf5 file
+        # file_name = file_name + '.h5'
+        # h5f = h5py.File(file_name, 'w')
+        # h5f.create_dataset('dataset_1', data=image_set)
+        # h5f.close()
         return
 
     def connect(self):
@@ -134,18 +158,10 @@ class QemFem():
         self.x10g_rdma.setDebug(False)
         self.x10g_rdma.ack = True
 
-        self.x10g_stream = ImageStreamUDP(  # DELETE ME WHEN NO LONGER NEEDED
-            self.server_data_ip_addr, 61650,
-            self.server_data_ip_addr, 61651,
-            self.camera_data_ip_addr, 61650,
-            self.camera_data_ip_addr, 61651,
-            1*1000**3, 9000, 20)
-        self.x10g_stream.debug = True
-
     def disconnect(self):
         # should be called on shutdown to close sockets
         self.x10g_rdma.close()
-        self.x10g_stream.close()
+        # self.x10g_stream.close()
 
     def set_ifg(self):
         self.x10g_rdma.write(self.udp_10G_data+0xF, 0x0, '10G Ctrl reg rdma ifg en, udpchecksum zero en')
@@ -160,16 +176,16 @@ class QemFem():
         return
 
     def stop_sequencer(self):
-        self.x10g_rdma.write(0xB0000000, 0x0, 'qem seq null')
+        self.x10g_rdma.write(self.sequencer, 0x0, 'qem seq null')
         time.sleep(self.delay)
-        self.x10g_rdma.write(0xB0000000, 0x2, 'qem seq stop')
+        self.x10g_rdma.write(self.sequencer, 0x2, 'qem seq stop')
         time.sleep(self.delay)
         return
 
     def start_sequencer(self):
-        self.x10g_rdma.write(0xB0000000, 0x0, 'qem seq null')
+        self.x10g_rdma.write(self.sequencer, 0x0, 'qem seq null')
         time.sleep(self.delay)
-        self.x10g_rdma.write(0xB0000000, 0x1, 'qem seq stop')
+        self.x10g_rdma.write(self.sequencer, 0x1, 'qem seq stop')
         time.sleep(self.delay)
         return
 
@@ -314,10 +330,13 @@ class QemFem():
         return
 
     def get_idelay_lock_status(self):
-        address = self.receiver | 0x13
-        data_locked_word = self.x10g_rdma.read(address, 'data_cdn_idelay word')
-        data_locked_flag = data_locked_word & 0x00000001
-        return data_locked_flag
+        if self.x10g_rdma is not None:
+            address = self.receiver | 0x13
+            data_locked_word = self.x10g_rdma.read(address, 'data_cdn_idelay word')
+            data_locked_flag = data_locked_word & 0x00000001
+            return data_locked_flag
+        else:
+            return 0
 
     def get_cdn_data_timing_values(self):
         address = self.receiver | 0x16
@@ -351,8 +370,9 @@ class QemFem():
         self.x10g_rdma.debug = False
         return
 
-
-    def load_vectors_from_file(self, vector_file_name='default.txt'):
+    def load_vectors_from_file(self, vector_file_name=None):
+        if vector_file_name is None or vector_file_name == "default":
+            vector_file_name = "{}/{}".format(self.vector_file_dir, self.selected_vector_file)
         logging.debug("loading vector file: %s", vector_file_name)
 
         #extract lines into array
@@ -434,7 +454,8 @@ class QemFem():
             self.rdma_mtu = new_mtu
             self.x10g_rdma.UDPMax = new_mtu
         else:
-            return
+            address = self.udp_10G_data
+            self.strm_mtu = new_mtu
 
         self.x10g_rdma.write(address+0xC, val_mtu, 'set 10G mtu')
         
