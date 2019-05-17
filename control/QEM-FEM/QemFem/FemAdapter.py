@@ -131,7 +131,7 @@ class Fem():
     def __init__(self):
         try:
             #BELOW: list of status register names and the corresponding GPIO port address
-            self.status_register={"DONE":1006,"P1V0_MGT_PGOOD":1005,"QDR_TERM_PGOOD":1004,"DDR3_TERM_PGOOD":1003,"P1V8_MGT_PGOOD":1002,"P1V2_PGOOD":1001,"P1V5_PGOOD":1000,"P1V8_PGOOD":999,"P2V0_PGOOD":998,"P1V0_PGOOD":997,"P5V0_PGOOD":996,"P3V3_PGOOD":995}
+            self.status_register={"DONE":1006,"P1V0_MGT_PGOOD":1005,"QDR_TERM_PGOOD":1004,"DDR3_TERM_PGOOD":1003,"P1V8_MGT_PGOOD":1002,"P1V2_PGOOD":1001,"P1V5_PGOOD":1000,"P1V8_PGOOD":999,"P2V0_PGOOD":998,"P1V0_PGOOD":997,"P5V0_PGOOD":996,"P3V3_PGOOD":995, "QSFP_MODULE_PRESENT_U20":994, "QSFP_MODULE_PRESENT_U13":993}
             self.status_names = self.status_register.keys()
             
             #BELOW: list of reset register names and the corresponding GPIO port address
@@ -148,9 +148,9 @@ class Fem():
             """
             
             #BELOW: list of control register names and the corresponding GPIO port address
-            self.control_register={"FSEL_1_DE": 986, "FSEL_0_DE": 987, "F_CLK_SEL": 988, "QSFP_I2C_SEL0": 989, "LPMODE0": 990, "MODPRSL0": 991, "LPMODE1": 992, "MODPRSL1": 993, "P1V0_EN_ZYNC": 994}
+            self.control_register={"FSEL_1_DE": 986, "FSEL_0_DE": 987, "F_CLK_SEL": 988, "QSFP_I2C_SEL0": 989, "LPMODE0": 990, "LPMODE1": 991, "P1V0_EN_ZYNC": 992}
             self.control_names = self.control_register.keys()
-            self.control_register_local = {"FSEL_1_DE": 0, "FSEL_0_DE": 0, "F_CLK_SEL": 0, "QSFP_I2C_SEL0": 0, "LPMODE0": 0, "MODPRSL0": 0, "LPMODE1": 0, "MODPRSL1": 0, "P1V0_EN_ZYNC": 1}
+            self.control_register_local = {"FSEL_1_DE": 0, "FSEL_0_DE": 0, "F_CLK_SEL": 0, "QSFP_I2C_SEL0": 0, "LPMODE0": 0, "LPMODE1": 0, "P1V0_EN_ZYNC": 1}
 
             """
              -- *** Control Register bis assignments for register control ***
@@ -165,18 +165,53 @@ class Fem():
             P1V0_EN_ZYNC <= control_reg(8);
             
             """
-            self.selected_flash = 0
+            self.selected_flash = 1 # device 1,2,3 or 4
         #exception error handling needs further improvement
         except ValueError:
             print('Non-numeric input detected.')
 
-        try: #setup the gpio registers
-            self.gpio_setup()
-        except BaseException as e:
-            print("Failed to do something: ", e)
-        finally:
-            print("Closing all gpio instances")
-            gpio.cleanup()
+        print("I got here")
+        self.gpio_root = '/sys/class/gpio/'
+        self.gpiopath = lambda pin: os.path.join(gpio_root, 'gpio{0}'.format(pin))
+        self.RoMODE = 'r'
+        self.RWMODE = 'r+'
+        self.WMODE = 'w'
+
+        # try: #setup the gpio registers
+        #     self.gpio_setup()
+        # except BaseException as e:
+        #     print("Failed to do something: ", e)
+        # finally:
+        #     print("Closing all gpio instances")
+        #     gpio.cleanup()
+        try:
+            for key,val in self.control_register.items():
+                ppath = str(self.gpio_root + 'gpio' + str(val))
+                value = open(str(ppath + '/value'), self.RWMODE)
+                direction = open(str(ppath + '/direction'), self.RoMODE)
+                gpio._open[val] = gpio.PinState(value=value, direction=direction)
+            
+            for key,val in self.status_register.items():
+                ppath = str(self.gpio_root + 'gpio' + str(val))
+                value = open(str(ppath + '/value'), self.RoMODE)
+                direction = open(str(ppath + '/direction'), self.RoMODE)
+                gpio._open[val] = gpio.PinState(value=value, direction=direction)
+            
+            for key,val in self.reset_register.items():
+                ppath = str(self.gpio_root + 'gpio' + str(val))
+                value = open(str(ppath + '/value'), self.RWMODE)
+                direction = open(str(ppath + '/direction'), self.RoMODE)
+                gpio._open[val] = gpio.PinState(value=value, direction=direction)
+            
+            print(gpio._open)
+            print(gpio._open[990].value)
+
+        except (BaseException) as e:
+            response = {'error': 'Something happened: {}'.format(str(e))}
+
+            
+        
+        print(gpio._open)
 
 
         try: #populate the parameter tree
@@ -193,7 +228,10 @@ class Fem():
                     "P2V0_PGOOD":(lambda: gpio.read(self.status_register.get("P2V0_PGOOD")), None),
                     "P1V0_PGOOD":(lambda: gpio.read(self.status_register.get("P1V0_PGOOD")), None),
                     "P5V0_PGOOD":(lambda: gpio.read(self.status_register.get("P5V0_PGOOD")), None),
-                    "P3V3_PGOOD":(lambda: gpio.read(self.status_register.get("P3V3_PGOOD")), None)
+                    "P3V3_PGOOD":(lambda: gpio.read(self.status_register.get("P3V3_PGOOD")), None),
+                    "QSFP_MODULE_PRESENT_U20_BOTn":(lambda: gpio.read(self.status_register.get("QSFP_MODULE_PRESENT_U20")), None),
+                    "QSFP_MODULE_PRESENT_U13_TOPn":(lambda: gpio.read(self.status_register.get("QSFP_MODULE_PRESENT_U13")), None),
+                    
                 },
                 "reset":{
                     "ZYNC_F_RST": (None, self.ZYNC_F_RST_set),
@@ -201,22 +239,21 @@ class Fem():
                     "RESETL0": (None, self.RESETL0_set),
                     "RESETL1": (None, self.RESETL1_set),
                     "V7_INIT_B": (None, self.V7_INIT_B_set),
-                    "V7_PRG_ZY": (None, self.V7_PRG_ZY_set)
+                    "RE-PROGRAM_FPGA": (None, self.V7_PRG_ZY_set)
                 },
                 "control":{
-                    "FSEL_1_DE":(lambda: self.read_control_reg("FSEL_1_DE"), self.FSEL_1_DE_set),
-                    "FSEL_0_DE":(lambda: self.read_control_reg("FSEL_0_DE"), self.FSEL_0_DE_set),
-                    "SELECTED_FLASH_DEVICE":(lambda: self.selected_flash, self.set_flash),
-                    "F_CLK_SEL":(lambda: self.read_control_reg("F_CLK_SEL"), self.F_CLK_SEL_set),
-                    "QSFP_I2C_SEL0":(lambda: self.read_control_reg("QSFP_I2C_SEL0"),self.QSFP_I2C_SEL0_set),
-                    "LPMODE0":(lambda: self.read_control_reg("LPMODE0"), self.LPMODE0_set),
-                    "MODPRSL0":(lambda: self.read_control_reg("MODPRSL0"), self.MODPRSL0_set),
-                    "LPMODE1":(lambda: self.read_control_reg("LPMODE1"), self.LPMODE1_set),
-                    "MODPRSL1":(lambda: self.read_control_reg("MODPRSL1"), self.MODPRSL1_set),
+                    "FIRMWARE_SELECT":(lambda: self.selected_flash, self.set_flash, {"description":"flash 1 = default firmware, flash 2 = test firmware, flash 3 = test firmware, flash 4 = FLASH PROGRAMMING FIRMWARE"}),
+                    "FLASH_CLOCK_SELECT":(lambda: self.read_control_reg("F_CLK_SEL"), self.F_CLK_SEL_set, {"description":"FPGA (DEFAULT/NORMAL) = 0, QSPI (PROGRAMMING FIRMWARE) = 1"}),
+                    "QSFP_I2C_SELECT":(lambda: self.read_control_reg("QSFP_I2C_SEL0"),self.QSFP_I2C_SEL0_set, {"description":"changes which I2C interface is ACTIVE, 0 = U20 BOTT, 1 = U13 TOP"}),
+                    "QSFP_LOW_POWER_MODE_U20_BOT":(lambda: self.read_control_reg("LPMODE0"), self.LPMODE0_set, {"description":"puts the bottom QSFP device into low power mode"}),
+                    "QSFP_LOW_POWER_MODE_U13_TOP":(lambda: self.read_control_reg("LPMODE1"), self.LPMODE1_set, {"description":"puts the top QSFP device into low power mode"}),
                     "P1V0_EN_ZYNC":(lambda: self.read_control_reg("P1V0_EN_ZYNC"), self.P1V0_EN_ZYNC_set)
                     
                 }         
             })
+
+
+
         except ValueError: #excepts need revision to be meaningful
             print('Non-numeric input detected.')
 
@@ -225,12 +262,6 @@ class Fem():
         return self.control_register_local.get(value)
     
     #parameter tree wrapper functions for control registers
-    def FSEL_1_DE_set(self, value):
-        self.control_register_local["FSEL_1_DE"]=value
-        gpio.set(self.control_register.get("FSEL_1_DE"), value)
-    def FSEL_0_DE_set(self, value):
-        self.control_register_local["FSEL_0_DE"]=value
-        gpio.set(self.control_register.get("FSEL_0_DE"), value)
     def F_CLK_SEL_set(self, value):
         self.control_register_local["F_CLK_SEL"]=value
         gpio.set(self.control_register.get("F_CLK_SEL"), value)
@@ -254,28 +285,28 @@ class Fem():
         gpio.set(self.control_register.get("P1V0_EN_ZYNC"), value)
     def set_flash(self, value):
         
-        if value == 0:
+        if value == 1:
             gpio.set(self.control_register.get("FSEL_1_DE"), 0)
             self.control_register_local["FSEL_1_DE"] = 0
             gpio.set(self.control_register.get("FSEL_0_DE"), 0)
             self.control_register_local["FSEL_0_DE"] = 0
             self.selected_flash = value
 
-        if value == 1:
+        if value == 2:
             gpio.set(self.control_register.get("FSEL_1_DE"), 0)
             self.control_register_local["FSEL_1_DE"] = 0
             gpio.set(self.control_register.get("FSEL_0_DE"), 1)
             self.control_register_local["FSEL_0_DE"] = 1
             self.selected_flash = value
             
-        if value == 2:
+        if value == 3:
             gpio.set(self.control_register.get("FSEL_1_DE"), 1)
             self.control_register_local["FSEL_1_DE"] = 1
             gpio.set(self.control_register.get("FSEL_0_DE"), 0)
             self.control_register_local["FSEL_0_DE"] = 0
             self.selected_flash = value
 
-        if value == 3:
+        if value == 4:
             gpio.set(self.control_register.get("FSEL_1_DE"), 1)
             self.control_register_local["FSEL_1_DE"] = 1
             gpio.set(self.control_register.get("FSEL_0_DE"), 1)
