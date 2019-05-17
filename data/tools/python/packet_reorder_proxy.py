@@ -16,11 +16,6 @@ class PacketReorderer():
     def __init__(self):
         self.defaults = PacketReordererDefaults()  # get default values
 
-        logging.basicConfig(
-            level=logging.DEBUG, format='%(levelname)1.1s %(message)s',
-            datefmt='%y%m%d %H:%M:%S'
-        )
-
         parser = argparse.ArgumentParser(description="QEM Packet Reorder Proxy")
 
         parser.add_argument(
@@ -43,9 +38,17 @@ class PacketReorderer():
             default=self.defaults.dest_port,
             help="Address of the packet destination"
         )
-
+        parser.add_argument(
+            '--logging', type=str, dest='logging',
+            default=self.defaults.logging,
+            help="Level of Logging required"
+        )
         self.args = parser.parse_args()
         
+        logging.basicConfig(
+            level=logging._levelNames[self.args.logging], format='%(levelname)1.1s %(message)s',
+            datefmt='%y%m%d %H:%M:%S'
+        )
         self.source_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.dest_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         logging.debug("Connecting socket to %s:%d", self.args.source_addr, self.args.source_port)
@@ -80,6 +83,10 @@ class PacketReordererDefaults():
 
         self.dest_addr = "127.0.0.1"
         self.dest_port = 61660
+
+        self.logging = "WARNING"
+
+        self.logging_levels = logging._levelNames
         
 
 if __name__ == "__main__":
