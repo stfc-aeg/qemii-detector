@@ -372,7 +372,7 @@ class QemFem():
 
     def load_vectors_from_file(self, vector_file_name=None):
         if vector_file_name is None or vector_file_name == "default":
-            vector_file_name = "{}/{}".format(self.vector_file_dir, self.selected_vector_file)
+            vector_file_name = os.path.join(self.vector_file_dir, self.selected_vector_file)
         logging.debug("loading vector file: %s", vector_file_name)
 
         #extract lines into array

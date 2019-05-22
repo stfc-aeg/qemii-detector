@@ -14,9 +14,9 @@ from concurrent import futures
 import os
 
 from tornado.ioloop import IOLoop
-from tornado.escape import json_decode
+from odin.util import decode_request_body, convert_unicode_to_string
 
-from odin.adapters.adapter import ApiAdapter, ApiAdapterResponse, request_types, response_types
+from odin.adapters.adapter import ApiAdapter, ApiAdapterRequest, ApiAdapterResponse, request_types, response_types
 from odin.adapters.parameter_tree import ParameterTree, ParameterTreeError
 
 from odin.adapters.proxy import ProxyAdapter
@@ -87,7 +87,7 @@ class QemDetectorAdapter(ApiAdapter):
         content_type = 'application/json'
 
         try:
-            data = json_decode(request.body)
+            data = convert_unicode_to_string(decode_request_body(request))
             self.qem_detector.set(path, data)
             response = self.qem_detector.get(path)
             status_code = 200
@@ -120,23 +120,7 @@ class QemDetectorAdapter(ApiAdapter):
         return ApiAdapterResponse(response, status_code=status_code)
 
     def initialize(self, adapters):
-        # get references to required adapters
-        # pass those references to the classes that need to use em
-        for name, adapter in adapters.items():
-            if isinstance(adapter, ProxyAdapter):
-                logging.debug("%s is Proxy Adapter", name)
-                self.adapters["proxy"] = adapter
-            elif isinstance(adapter, FrameProcessorAdapter):
-                logging.debug("%s is FP Adapter", name)
-                self.adapters["fp"] = adapter
-            elif isinstance(adapter, FrameReceiverAdapter):
-                logging.debug("%s is FR Adapter", name)
-                self.adapters["fr"] = adapter
-            elif isinstance(adapter, LiveViewAdapter):
-                logging.debug("%s is Live View Adapter", name)
-                self.adapters["liveview"] = adapter
-
-        self.qem_detector.calibrator.initialize(self.adapters)
+        self.qem_detector.initialize(adapters)
 
 
 class QemDetectorError(Exception):
@@ -159,7 +143,7 @@ class QemDetector():
 # camera_data_ip = 10.0.2.102
     def __init__(self):
         self.daq = QemDAQ()
-        self.vector_file = "/aeg_sw/work/projects/qem/python/03052018/QEM_D4_198_ADC_10_icbias5_ifbias24.txt"
+        # only one FEM for QEM, QEMII will have multiple (up to 4)
         fems = [QemFem(
             ip_address="192.168.0.122",
             port="8070",
@@ -175,18 +159,72 @@ class QemDetector():
             fem.setup_camera()
             # fem.load_vectors_from_file(self.vector_file)
             fem_tree["fem_{}".format(fem.id)] = fem.param_tree
-        self.calibrator = QemCalibrator(0, "/scratch/qem/QEM_AN_CALIBRATION/", fems)  # TODO: replace hardcoded directory
 
+        self.file_dir = "/scratch/qem/QEM_AN_CALIBRATION/"  # these should be configurable
+        self.file_name = "adam_test_4"
+        self.file_writing = False
+        self.calibrator = QemCalibrator(0, self.file_name, self.file_dir, fems)  # TODO: replace hardcoded directory
         self.param_tree = ParameterTree({
+            "file_info": {
+                "file_path": (lambda: self.file_dir, self.set_data_dir),
+                "file_name": (lambda: self.file_name, self.set_file_name),
+                "file_write": (lambda: self.file_writing, self.set_file_writing)
+            },
             "calibrator": self.calibrator.param_tree,
             "fems": fem_tree
         })
+
+        self.adapters = {}
 
     def get(self, path):
         return self.param_tree.get(path)
 
     def set(self, path, data):
+        logging.debug("SET:\n PATH: %s\n DATA: %s", path, data)
         return self.param_tree.set(path, data)
+
+    def set_data_dir(self, directory):
+        self.file_dir = directory
+        self.calibrator.data_dir = self.file_dir
+
+    def set_file_name(self, name):
+        self.file_name = name
+        self.calibrator.data_file = self.file_name
+
+    def set_file_writing(self, writing):
+        self.file_writing = writing
+        # send command to Odin Data
+        command = "config/hdf/file/path"
+        request = ApiAdapterRequest(self.file_dir, content_type="application/json")
+        self.adapters["fp"].put(command, request)
+
+        command = "config/hdf/file/name"
+        request.body = self.file_name
+        self.adapters["fp"].put(command, request)
+
+        command = "config/hdf/write"
+        request.body = "{}".format(writing)
+        self.adapters["fp"].put(command, request)
+
+    def initialize(self, adapters):
+        """Get references to required adapters and pass those references to the classes that need
+            to use them
+        """
+        for name, adapter in adapters.items():
+            if isinstance(adapter, ProxyAdapter):
+                logging.debug("%s is Proxy Adapter", name)
+                self.adapters["proxy"] = adapter
+            elif isinstance(adapter, FrameProcessorAdapter):
+                logging.debug("%s is FP Adapter", name)
+                self.adapters["fp"] = adapter
+            elif isinstance(adapter, FrameReceiverAdapter):
+                logging.debug("%s is FR Adapter", name)
+                self.adapters["fr"] = adapter
+            elif isinstance(adapter, LiveViewAdapter):
+                logging.debug("%s is Live View Adapter", name)
+                self.adapters["liveview"] = adapter
+
+        self.calibrator.initialize(self.adapters)
 
 
 class QemDAQ():
