@@ -31,8 +31,10 @@
           <div id="navbar" class="collapse navbar-collapse">
             <ul class="nav navbar-nav">
               <li class="active"><a href="#">Home</a></li>
-              <li><a href="#about">About</a></li>
-              <li><a href="#contact">Contact</a></li>
+              <li><a href="#file-writer">File Writer</a></li>
+              <li><a href="#calibration">QEM Calibrator</a></li>
+              <li><a href="#live-view">Live View</a></li>
+              <li><a href="qem.html">QEM Detector</a></li>
             </ul>
           </div><!--/.nav-collapse -->
         </div>
@@ -44,8 +46,6 @@
           <h1>QEM-II Data Acquisition</h1>
           <p>API version is:&nbsp;<span id="api-version">&nbsp;</span></p>
           <p>Registered API adapters:&nbsp;<span id="api-adapters">&nbsp;</span></p>
-          <p>Workshop background task count:&nbsp;<span id="task-count">&nbsp;</span></p>
-          <p>Enable background task:&nbsp;<input type="checkbox" id="task-enable" onclick="change_enable()"/></p>
         </div>
 
         
@@ -53,7 +53,7 @@
           <div class="row fluid-row">
             <div class="well sidebar-nav-fixed">
               <span>
-                <h3>File Writer Configuration</h3>
+                <h3 id="file-writer">File Writer Configuration</h3>
               </span>
               <div class = "btn-group">
                 <button id="Start-filewrite" type="button" class="btn btn-default" onclick="start_filewriter()">Start</button>
@@ -94,14 +94,35 @@
               </div>
             </div>
 
-            <div class="container-fluid">
+
+            <div class="container-fluid" id="calibration-container">
+                <div class="row fluid-row">
+                    <div class="well sidebar-nav-fixed">
+                      <span>
+                        <h3 id="calibration">QEM Calibration</h3>
+                      </span>
+                      <div class="btn-group">
+                          <button class="btn btn-default" type="button">Start Coarse Calibration</button>
+                          <button class="btn btn-default" type="button">Start Coarse Plot</button>
+                      </div>
+                      <div class="btn-group">
+                        <button class="btn btn-default" type="button">Start Fine Calibration</button>
+                        <button class="btn btn-default" type="button">Start Fine Plot</button>
+                      </div>
+                          <span class="label label-info">No Calibration Run</span>
+                    </div>
+                </div>
+            </div>
+
+
+            <div class="container-fluid" id="live-view-container">
                 <div class="row fluid-row">
     
                     <div class="span3">
                         <div class="well sidebar-nav-fixed">
                             <div class="container-fluid">
                                 <div class="row sidebar-title">
-                                    <h3>Live View Demo</h3>
+                                    <h3 id="live-view">Live View Demo</h3>
                                 </div>
                                 <div class="row sidebar-row vertical-align">
                                     <div class="col-xs-5">

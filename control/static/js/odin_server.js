@@ -113,7 +113,7 @@ function start_filewriter(){
                 type: "PUT",
                 url: '/api/' + api_version + '/fp/config/hdf/file/name',
                 contentType: "application/json",
-                data: JSON.stringify(file_path)
+                data: JSON.stringify(file_name)
             }).done(
                 function(){
                     $.ajax({
