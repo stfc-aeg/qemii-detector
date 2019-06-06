@@ -86,7 +86,7 @@ class QemFem():
             "ip_addr": (self.get_address, None),
             "port": (self.get_port, None),
             "vector_file_dir": (self.get_vector_file_dir, None),
-            "selected_vector_file": (self.get_selected_vector_file, None),
+            "selected_vector_file": (self.get_selected_vector_file, self.set_selected_vector_file),
             "load_vector_file": (None, self.load_vectors_from_file),
             "setup_camera": (None, self.setup_camera)
         })
@@ -96,6 +96,9 @@ class QemFem():
 
     def get_selected_vector_file(self):
         return self.selected_vector_file
+
+    def set_selected_vector_file(self, file):
+        self.selected_vector_file = file
 
     def get_address(self):
         return self.ip_address
@@ -122,7 +125,11 @@ class QemFem():
         #set idelay in 1 of 32 80fs steps  - d1, d0, c1, c0
         self.set_idelay(0,0,0,0)
         time.sleep(1)
-        locked = self.get_idelay_lock_status()
+        locked = self.get_idelay_lock_status() is not 0
+        if locked:
+            logging.debug("IDelay Locked: %s", locked)
+        else:
+            logging.warn("IDelay Locked: %s. Something has gone wrong!", locked)
         # set sub cycle shift register delay in 1 of 8 data clock steps - d1, d0, c1, c0
         # set shift register delay in 1 of 16 divide by 8 clock steps - d1, d0, c1, c0
         #

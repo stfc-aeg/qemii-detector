@@ -157,13 +157,13 @@ class QemDetector():
         for fem in fems:
             fem.connect()
             fem.setup_camera()
-            # fem.load_vectors_from_file(self.vector_file)
+
             fem_tree["fem_{}".format(fem.id)] = fem.param_tree
 
-        self.file_dir = "/scratch/qem/QEM_AN_CALIBRATION/"  # these should be configurable
+        self.file_dir = "/scratch/qem/QEM_AN_CALIBRATION/"  # TODO: these should be configurable
         self.file_name = "adam_test_4"
         self.file_writing = False
-        self.calibrator = QemCalibrator(0, self.file_name, self.file_dir, fems)  # TODO: replace hardcoded directory
+        self.calibrator = QemCalibrator(0, self.file_name, self.file_dir, fems)
         self.param_tree = ParameterTree({
             "file_info": {
                 "file_path": (lambda: self.file_dir, self.set_data_dir),

@@ -25,14 +25,15 @@
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
-          </button>
+            </button>
           <a class="navbar-brand" href="#">QEM</a>
         </div>
         <div id="navbar" class="collapse navbar-collapse">
           <ul class="nav navbar-nav">
-            <li class="active"><a href="index.html">Home</a></li>
+            <li><a href="index.html">Home</a></li>
+            <li class="active"><a href="#">QEM Detector</a></li>
             <li><a href="#file-writer">File Writer</a></li>
-            <li><a href="#calibration">QEM Calibrator</a></li>
+            <li><a href="#calibration-container">QEM Calibrator</a></li>
             <li><a href="#live-view">Live View</a></li>
           </ul>
         </div><!--/.nav-collapse -->
@@ -45,36 +46,100 @@
         <p>API version is:&nbsp;<span id="api-version">&nbsp;</span></p>
         <p>Registered API adapters:&nbsp;<span id="api-adapters">&nbsp;</span></p>
       </div>
-      <div class="container-fluid" id="calibration-container">
-        <div class="well well-lg">
-          <div class="row">  
-            <span>  
-              <h2 id="calibration">QEM Calibration</h2>
-            </span>
-            <div class="col-md-12">
-              <span class="label label-warning">No Calibration Run</span>
-              <span class="label label-warning">Plot Not Run</span>
-            </div>
-            <div class="col-md-6">
-              <h4>Coarse</h4>
-              <div class="btn-group">
-                <button class="btn btn-default" type="button">Calibrate</button>
-                <button class="btn btn-default" type="button">Plot</button>
-              </div>
 
-              <img id="coarse-graph" class="img-responsive" src="img/coarse_graph.png" alt="Coarse Calibration Graph">
-            </div>
-            <div class="col-md-6">
-              <h4>Fine</h4>
-              <div class="btn-group">
-                <button class="btn btn-default" type="button">Calibrate</button>
-                <button class="btn btn-default" type="button">Plot</button>
+      <ul class="nav nav-tabs">
+        <li class="active"><a data-toggle="pill" href="#calibration-container">Calibration</a></li>
+        <li><a data-toggle="pill" href="#vector-file-container">Vector File</a></li>
+        <li><a data-toggle="pill" href="#file-write-container">File Writer</a> </li>
+      </ul>
+
+      <div class="tab-content">
+
+        <div class="tab-pane fade in active" id="calibration-container">
+          <div class="well well-lg">
+            <div class="row">  
+              <span>  
+                <h2 id="calibration">QEM Calibration</h2>
+              </span>
+              <div class="col-md-12">
+                <span id="lbl-calibrate" class="label label-success">Calibration: Not Running</span>
+                <span id="lbl-plot" class="label label-success">Plotting: Not Running</span>
               </div>
-              <img id="fine-graph" class="img-responsive" src="img/fine_graph.png" alt="Fine Calibration Graph">
+              <div class="col-md-6">
+                <h4>Coarse</h4>
+                <div class="btn-group">
+                  <button id="btn-cal-coarse"  class="btn btn-default" type="button" onclick="start_calibrate_coarse()">Calibrate</button>
+                  <button id="btn-plot-coarse" class="btn btn-default" type="button" onclick="start_plot_coarse()">Plot</button>
+                </div>
+
+                <img id="coarse-graph" class="img-responsive" src="img/coarse_graph.png" data-src="img/coarse_graph.png" alt="Coarse Calibration Graph">
+              </div>
+              <div class="col-md-6">
+                <h4>Fine</h4>
+                <div class="btn-group">
+                  <button id="btn-cal-fine" class="btn btn-default" type="button" onclick="start_calibrate_fine()">Calibrate</button>
+                  <button id="btn-plot-fine" class="btn btn-default" type="button" onclick="start_plot_fine()">Plot</button>
+                </div>
+                <img id="fine-graph" class="img-responsive" src="img/fine_graph.png" data-src="img/fine_graph.png" alt="Fine Calibration Graph">
+              </div>
             </div>
           </div>
         </div>
-      </div>
+
+        <div class="tab-pane fade in" id="vector-file-container">
+          <div class="well sidebar-nav-fixed">
+            <div class="row">
+              <span>
+                <h2>Vector File Manager</h2>
+              </span>
+              <label class="label label-default" for=btn-select-vector>Select Vector File:</label>
+              <div class="dropdown">
+                <button id="btn-select-vector" class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown" onclick="get_vector_file_list()">Vector Files
+                <span class="caret"></span></button>
+                <ul id="lst-vector-files" class="dropdown-menu"></ul>
+              </div>
+              <span id="selected-vector-file"></span>
+              <button id="btn-load-vector" class="btn btn-primary" onclick="upload_vector_file()">Upload Vector File</button>
+            </div>
+          </div>
+        </div><!--Vector File Container-->
+
+        <div class="tab-pane fade in" id="file-write-container">
+          <div class="well sidebar-nav-fixed">
+            <div class="row">
+              <span>
+                <h2>Odin Data - File Writer</h2>
+              </span>
+            </div>
+            <div class="row">
+              <div class="col-sm-6">
+                <label for="txt-file-name">File Name</label>
+                <input class="form-control" type="text" id="txt-file-name" value="Test" oninput="checkFileName()">
+                <div class="btn-group" role="group" id="btngrp-file-name">
+                  <button type="button" class="btn btn-primary" id="btn-set-file-name" onclick="setFileName()">Set File Name</button>
+                  <button type="button" class="btn btn-secondary" id="btn-reset-file-name" onclick="getFileName() ">Reset File Name</button>
+                </div>
+              </div>
+              <div class="col-sm">
+                <label for="write-enabled">File Writing Enabled</label>
+                <br>
+                <input type="checkbox" id="write-enabled">
+              </div>
+            </div>
+          </div>
+        </div><!--File Write Container-->
+
+
+      </div> <!--Tab Content-->
     </div>
+
+    <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+    <script src="js/jquery-2.2.3.min.js"></script>
+    <!-- Include all compiled plugins (below), or include individual files as needed -->
+    <script src="js/bootstrap-3.3.6-dist/js/bootstrap.min.js"></script>
+    <script src="js/bootstrap-3.3.6-dist/js/bootstrap-switch.min.js"></script>
+    <script src="js/bootstrap-slider-10.2.1/js/bootstrap-slider.min.js"></script>
+    <script src="js/qem_server.js"></script>
+
   </body>
 </html>

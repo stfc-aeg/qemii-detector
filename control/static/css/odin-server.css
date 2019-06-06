@@ -17,6 +17,13 @@ body {
     text-align: center;
 }
 
+#vector-file-container{
+    text-align: center;
+}
+
+#file-write-container{
+    text-align: center;
+}
 .input-group{
 
     width: 100%;
