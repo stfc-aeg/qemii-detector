@@ -8,6 +8,7 @@ Rob Halsall 2018, Sophie Kirkham, Application Engineering Group, STFC, 2019.
 import socket
 import struct
 import time
+import logging
 
 class RdmaUDP(object):
 
@@ -54,14 +55,14 @@ class RdmaUDP(object):
                 #print decoded
 
         if self.debug:
-            print 'R %08X : %08X %s' % (address, data, comment)
+            logging.debug('R %08X : %08X %s', address, data, comment)
 
         return data
 
     def write(self, address, data, comment=''):
 
         if self.debug:
-            print 'W %08X : %08X %s' % (address, data, comment)
+            logging.debug('W %08X : %08X %s', address, data, comment)
 
         #create single write command + 5 data cycle nop command for paddings
         command = struct.pack('=BBBBIQBBBBIQQQQQ', 1,0,0,2, address, data, 9,0,0,255,0, 0,0,0,0,0)
@@ -93,7 +94,7 @@ class RdmaUDP(object):
             #print len(response)
 
         if self.debug:
-            print 'R %08X : %08X %s' % (address, decoded, comment)
+            logging.debug('R %08X : %08X %s', address, decoded, comment)
 
         return decoded
 
@@ -106,7 +107,7 @@ class RdmaUDP(object):
         length = len(data)/4-1
         command = struct.pack('=BBBBI', length,0,0,0, address)
         command= command+data
-        print len(command)
+        logging.debug(len(command))
 
         #Send the single write command packet
         self.txsocket.sendto(command,(self.TgtRxUDPIPAddr,self.TgtRxUDPIPPrt))

@@ -54,7 +54,7 @@ class VectorFileAdapter(ApiAdapter):
         super(VectorFileAdapter, self).__init__(**kwargs)
 
         if self.options.get('file_name', False):
-            self.vector_file = VectorFile(self.options['file_name'])
+            self.vector_file = VectorFile(self.options['file_name'], self.options['file_dir'])
         else:
             logging.warning("No Vector File selected.")
 
@@ -69,7 +69,6 @@ class VectorFileAdapter(ApiAdapter):
             status_code = 400
 
         content_type = 'application/json'
-        logging.debug("BIAS DICT: %s", self.vector_file.bias)
         return ApiAdapterResponse(response, content_type=content_type,
                                   status_code=status_code)
 
@@ -95,7 +94,8 @@ class VectorFileAdapter(ApiAdapter):
 
 class VectorFile():
 
-    def __init__(self, file_name):
+    def __init__(self, file_name, file_dir):
+        self.file_dir = file_dir
         self.file_name = file_name
         self.vector_loop_position = 0
         self.vector_length = 0
@@ -115,15 +115,18 @@ class VectorFile():
             # dict comprehension, like a one-line for loop
             # basically, for each bias, create a tuple of partial functions
             # that get/set values from the dictionary
-            {bias_name: (partial(self.get_bias_val, bias_name),
-                         partial(self.set_bias_val, bias_name),
-                         # metadata ensures the bias val can't go over its 6 bit max
-                         {"min": 0, "max": (2**BIAS_DEPTH) - 1})
-             for bias_name in self.bias.keys()})
+            {
+                bias_name: (partial(self.get_bias_val, bias_name),
+                            partial(self.set_bias_val, bias_name),
+                            # metadata ensures the bias val can't go over its 6 bit max
+                            {"min": 0, "max": (2**BIAS_DEPTH) - 1})
+                for bias_name in self.bias.keys()
+            })
     
         self.param_tree = ParameterTree({
             "bias": self.bias_tree,
             "file_name": (lambda: self.file_name, self.set_file_name),
+            "file_dir": (lambda: self.file_dir, None),
             "length": (lambda: self.vector_length, None),
             "loop_pos": (lambda: self.vector_loop_position, None),
             "save": (None, self.write_vector_file),
@@ -134,7 +137,9 @@ class VectorFile():
         """Extract the information from the vector file, such as loop position,
         vector length, and the vector data.
         """
-        with open(self.file_name, 'r') as f:
+        path = os.path.join(self.file_dir, self.file_name)
+        path = os.path.expanduser(path)
+        with open(path, 'r') as f:
 
             self.vector_loop_position = int(f.readline())
             self.vector_length = int(f.readline())
@@ -145,9 +150,6 @@ class VectorFile():
 
             logging.info("Loop Position:      %s", self.vector_loop_position)
             logging.info("Vector File Length: %s", self.vector_length)
-
-            logging.info("Clock Column:       %d", self.vector_names.index("dacCLKin"))
-            logging.info("DAC Data In Column: %d", self.vector_names.index("dacDin"))
 
             # read the remaining data from the file
             vector_data_string = f.read()
@@ -195,7 +197,6 @@ class VectorFile():
             # using join() + list comprehension
             # converting binary list to integer
             self.bias[dac_data_name] = int("".join(str(x) for x in data), 2)
-            logging.debug("%-16s: %2d", dac_data_name, self.bias[dac_data_name])
 
     def convert_bias_to_raw(self):
         """Convert the data in the bias dictionary into the binary representation required
@@ -224,7 +225,9 @@ class VectorFile():
         logging.debug("Converting Biases to Binary")
         self.convert_bias_to_raw()
 
-        with open(file_name, 'w') as f:
+        path = os.path.join(self.file_dir, self.file_name)
+        path = os.path.expanduser(path)
+        with open(path, 'w') as f:
             logging.debug("FILE NAME: %s", f.name)
             logging.debug("FILE MODE: %s", f.mode)
             f.write("{}\n".format(self.vector_loop_position))

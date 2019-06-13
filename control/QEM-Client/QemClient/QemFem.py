@@ -14,6 +14,7 @@ from tornado.escape import json_decode
 from RdmaUDP import RdmaUDP
 from ImageStreamUDP import ImageStreamUDP
 from odin.adapters.parameter_tree import ParameterTree, ParameterTreeError
+from VectorFileAdapter import VectorFile
 
 BUSY = 1
 FREE = 0
@@ -23,6 +24,7 @@ class QemFemError(Exception):
 
     pass
 
+
 class QemFem():
     """Qem Fem class. Represents a single FEM-II module.
 
@@ -31,7 +33,7 @@ class QemFem():
     
     def __init__(self, ip_address, port, id,
                  server_ctrl_ip_addr, camera_ctrl_ip_addr,
-                 server_data_ip_addr, camera_data_ip_addr, 
+                 server_data_ip_addr, camera_data_ip_addr,
                  vector_file_dir="/aeg_sw/work/projects/qem/python/03052018/",
                  vector_file="QEM_D4_198_ADC_10_icbias5_ifbias24.txt"):
 
@@ -48,7 +50,7 @@ class QemFem():
         self.camera_data_ip_addr = camera_data_ip_addr
 
         self.vector_file_dir = vector_file_dir
-        self.selected_vector_file = vector_file
+        self.vector_file = VectorFile(vector_file, vector_file_dir)
         
         # qem 1 base addresses
         self.udp_10G_data    = 0x00000000
@@ -85,17 +87,19 @@ class QemFem():
         self.param_tree = ParameterTree({
             "ip_addr": (self.get_address, None),
             "port": (self.get_port, None),
-            "vector_file_dir": (self.get_vector_file_dir, None),
-            "selected_vector_file": (self.get_selected_vector_file, self.set_selected_vector_file),
+            "vector_file": self.vector_file.param_tree,
             "load_vector_file": (None, self.load_vectors_from_file),
             "setup_camera": (None, self.setup_camera)
         })
+
+    def __del__(self):
+        self.x10g_rdma.close()
 
     def get_vector_file_dir(self):
         return self.vector_file_dir
 
     def get_selected_vector_file(self):
-        return self.selected_vector_file
+        return self.vector_file.file_name
 
     def set_selected_vector_file(self, file):
         self.selected_vector_file = file
@@ -125,7 +129,7 @@ class QemFem():
         #set idelay in 1 of 32 80fs steps  - d1, d0, c1, c0
         self.set_idelay(0,0,0,0)
         time.sleep(1)
-        locked = self.get_idelay_lock_status() is not 0
+        locked = self.get_idelay_lock_status() != 0
         if locked:
             logging.debug("IDelay Locked: %s", locked)
         else:
@@ -383,29 +387,20 @@ class QemFem():
         logging.debug("loading vector file: %s", vector_file_name)
 
         #extract lines into array
-        with open(vector_file_name, 'r') as f:
-            data = f.readlines()
-            init_length  = int(data[0])
-            loop_length  = int(data[1])
-            number_vectors = len(data)-3
-            logging.debug("vectors loaded: %-8i", number_vectors)
-            logging.debug("loop position: %-8i", loop_length)
-            logging.debug("init position: %-8i", init_length)
-            f.close()
+        init_length  = self.vector_file.vector_length
+        loop_length  = self.vector_file.vector_loop_position
 
         self.stop_sequencer()
 
-        #load sequencer RAM
+        # load sequencer RAM
         logging.debug("Loading Sequncer RAM")
-        for seq_address in range(number_vectors):
-            words = data[seq_address+3].split()
-            format_words = "%64s" % words[0]
-            vector = int(words[0],2)
+
+        for seq_address, vector_line in enumerate(self.vector_file.vector_data):
+            vector_str = "".join(str(x) for x in vector_line)
+            vector = int(vector_str, 2)
             lower_vector_word = vector & 0xFFFFFFFF
             upper_vector_word = vector >> 32
-            if self.debug_level == 0:
-                logging.debug("%64s %016X %8X %8X", format_words, vector, upper_vector_word, lower_vector_word)
-            #load fpga block ram
+            # load fpga block ram
             ram_address = seq_address * 2 + 0xB1000000
             self.x10g_rdma.write(ram_address, lower_vector_word, 'qem seq ram loop 0')
             time.sleep(self.delay)
@@ -413,13 +408,20 @@ class QemFem():
             self.x10g_rdma.write(ram_address, upper_vector_word, 'qem seq ram loop 0')
             time.sleep(self.delay)
 
-        #set init  limit
-        self.x10g_rdma.write(0xB0000001, init_length - 1, 'qem seq init limit')
+        # set loop limit
+        self.x10g_rdma.write(0xB0000001, loop_length - 1, 'qem seq loop limit')
         time.sleep(self.delay)
-        #set loop limit
-        self.x10g_rdma.write(0xB0000002, loop_length - 1, 'qem seq loop limit')
+        # set init limit
+        self.x10g_rdma.write(0xB0000002, init_length - 1, 'qem seq init limit')
         time.sleep(self.delay)
         self.start_sequencer()
+        time.sleep(0.1)  # this sleep might have been the missing thing allowing this whole bloody thing to work?
+        self.get_aligner_status()
+        lock = self.get_idelay_lock_status() != 0
+        if not lock:
+            logging.warning("Idelay Not locked after Vector File Upload. Check Vector File")
+        else:
+            logging.debug("Idelay Locked after Vector File Upload")
         return
 
     def restart_sequencer(self):
