@@ -166,15 +166,22 @@
       <div class="modal-dialog modal-dialog-centered" role="document">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title" id="hd-save-model">Save Vector File</h5>
             <button type="button" class="close" data-dismiss="modal" aria-label="Close">
               <span aria-hidden="true">&times;</span>
             </button>
+            <h4 class="modal-title" id="hd-save-model">Save Vector File</h4>
           </div>
           <div class="modal-body">
             <label for="txt-vector-save-name">Save Vector File as:</label>
             
-            <input class="form-control" type="text" id="txt-vector-save-name">
+            <div class="input-group mb-3">
+              <span class="input-group-addon">QEM_</span>
+              <input class="form-control" type="text" id="txt-vector-save-name">
+              <span class="input-group-addon">.txt</span>
+            </div>
+            <p class="form-text text-muted">
+              Vector files for Calibration must include "ADC" in the name
+            </p>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
@@ -189,10 +196,10 @@
         <div class="modal-dialog modal-dialog-centered" role="document">
           <div class="modal-content">
             <div class="modal-header">
-              <h5 class="modal-title" id="hd-save-model">Reset Biases</h5>
               <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                 <span aria-hidden="true">&times;</span>
               </button>
+              <h4 class="modal-title" id="hd-save-model">Reset Biases</h4>
             </div>
             <div class="modal-body">
               <label for="txt-vector-save-name">This will undo any unsaved changes made.</label>

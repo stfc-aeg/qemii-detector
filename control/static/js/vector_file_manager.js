@@ -12,7 +12,9 @@ $(document).ready(function() {
     console.log("VECTOR FILE MANAGER LOADED");
     $('#mdl-vector-save').on("show.bs.modal", function(){
         console.log("Modal Shown");
-        $('#txt-vector-save-name').val(selected_vector_file);
+        var file_string = selected_vector_file.replace("QEM_", "");
+        file_string = file_string.replace(".txt", "");
+        $('#txt-vector-save-name').val(file_string);
     });
 
     get_vector_file();
@@ -70,8 +72,14 @@ function biasTableRow(name, val){
 
     form_lbl.setAttribute("for", txt_name);
     form_div.setAttribute("class", "form-group");
+    
     txt_box.setAttribute("id", txt_name);
     txt_box.setAttribute("value", val);
+    txt_box.setAttribute("type", "number");
+    txt_box.setAttribute("min", "0");
+    txt_box.setAttribute("max", "63");
+
+    
     name_col.setAttribute("class", "col-md-6");
     val_col.setAttribute("class", "col-md-6");
     form_lbl.setAttribute("id", "lbl_" + name);
@@ -83,8 +91,15 @@ function biasTableRow(name, val){
     row.appendChild(val_col);
 
     txt_box.classList.add("form-control");
-    txt_box.addEventListener("focusout", function(){
+    txt_box.addEventListener("change", function(){
         set_bias_val(name, txt_box.value);
+    });
+    txt_box.addEventListener("keyup", function(event){
+        //keycode 13 is the enter key
+        if(event.keyCode === 13){
+            event.preventDefault();
+            set_bias_val(name, txt_box.value);
+        }
     });
 
     val_col.appendChild(form_div);
@@ -191,6 +206,12 @@ function get_binary_string(val){
 }
 
 function save_vector_file(file_name){
+    if(!file_name.startsWith("QEM_")){
+        file_name = "QEM_" + file_name;
+    }
+    if(!file_name.endsWith(".txt")){
+        file_name = file_name + ".txt";
+    }
     console.log("Saving Vectors as " + file_name);
     selected_vector_file = file_name;
     $.ajax({
