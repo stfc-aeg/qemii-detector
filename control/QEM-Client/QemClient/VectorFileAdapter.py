@@ -219,13 +219,14 @@ class VectorFile():
                 line[self.dac_dat_in] = self.dac_data_vector[i]
 
     def write_vector_file(self, file_name):
+        logging.debug("Saving Vector File: %s", file_name)
         if file_name.lower() == "none" or file_name == "":
             file_name = self.file_name
 
         logging.debug("Converting Biases to Binary")
         self.convert_bias_to_raw()
 
-        path = os.path.join(self.file_dir, self.file_name)
+        path = os.path.join(self.file_dir, file_name)
         path = os.path.expanduser(path)
         with open(path, 'w') as f:
             logging.debug("FILE NAME: %s", f.name)
@@ -239,13 +240,15 @@ class VectorFile():
             for line in self.vector_data:
                 str_line = "".join([str(x) for x in line])
                 f.write("{}\n".format(str_line))
+        self.file_name = file_name
 
     def set_file_name(self, name):
         # TODO: some form of verification
         self.file_name = name
+        self.get_vector_information()
 
     def reset_vector_file(self, data):
-        if(os.path.isfile(self.file_name)):
+        if os.path.isfile(os.path.join(self.file_dir, self.file_name)):
             self.get_vector_information()
 
     def get_bias_val(self, bias_name):
@@ -253,6 +256,9 @@ class VectorFile():
 
     def set_bias_val(self, bias_name, val):
         logging.info("SETTING BIAS %s to %d", bias_name, val)
+        if val == self.bias[bias_name]:
+            logging.debug("Bias Already %d, ignoring", val)
+            return
         self.bias[bias_name] = val
 
         # get position in list, as its in the same order in the vector_data

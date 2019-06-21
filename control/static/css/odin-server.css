@@ -47,7 +47,9 @@ body {
     width: 100%;
   
 }
-
+.progress{
+    background-color: #cccccc;
+}
 #current-processor-file, #file-badge, #current-receiver-file{
 
     display: block;

@@ -5,9 +5,7 @@ $( document ).ready(function() {
 
     update_api_version();
     update_api_adapters();
-    get_vector_file();
-    getFileName();
-    getVectorBiases();
+    
 
     $('#write-enabled').bootstrapSwitch();
     $('#write-enabled').on('switchChange.bootstrapSwitch', function(event, state){

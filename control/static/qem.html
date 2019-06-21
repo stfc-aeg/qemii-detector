@@ -54,7 +54,7 @@
       </ul>
 
       <div class="tab-content">
-
+        <!--CALIBRATION TAB##############################################################################################################################-->
         <div class="tab-pane fade in active" id="calibration-container">
           <div class="well well-lg">
             <div class="row">  
@@ -64,6 +64,11 @@
               <div class="col-md-12">
                 <span id="lbl-calibrate" class="label label-success">Calibration: Not Running</span>
                 <span id="lbl-plot" class="label label-success">Plotting: Not Running</span>
+              </div>
+              <div class="col-md-12">
+                <div class="progress">
+                  <div class="progress-bar bg-info" role="progressbar" id="prg-calibrate-progress" style="width: 0%"></div>
+                </div>
               </div>
               <div class="col-md-6">
                 <h4>Coarse</h4>
@@ -86,6 +91,7 @@
           </div>
         </div>
 
+        <!--VECTOR FILE TAB##############################################################################################################################-->
         <div class="tab-pane fade in" id="vector-file-container">
           <div class="well sidebar-nav-fixed">
             <div class="row">
@@ -94,16 +100,38 @@
               </span>
               <label class="label label-default" for=btn-select-vector>Select Vector File:</label>
               <div class="dropdown">
-                <button id="btn-select-vector" class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown" onclick="get_vector_file_list()">Vector Files
-                <span class="caret"></span></button>
+                <button id="btn-select-vector" class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown">
+                  Vector Files
+                  <span class="caret"></span>
+                </button>
                 <ul id="lst-vector-files" class="dropdown-menu"></ul>
               </div>
-              <span id="selected-vector-file"></span>
+              <br/>
+              <div class="form-inline">
+                <button id="btn-save-vector" class="btn btn-primary" type="button" data-toggle="modal" data-target="#mdl-vector-save">
+                  Save Vector File
+                </button>
+                <button id="btn-reset-vector" class="btn btn-warning" type="button" data-toggle="modal" data-target="#mdl-vector-reset">
+                  Reset Vector File
+                </button>
+              </div>
+              <table class="table table-striped" id="tbl-vector-bias">
+                <thread>
+                <tr>
+                  <th scope="col">Bias Name</th>
+                  <th scope="col">Bias Value</th>
+                </tr>
+                </thread>
+                <tbody id="tbl-body-bias">
+                </tbody>
+                                  
+              </table>
               <button id="btn-load-vector" class="btn btn-primary" onclick="upload_vector_file()">Upload Vector File</button>
             </div>
           </div>
         </div><!--Vector File Container-->
 
+        <!--FILE WRITING TAB##############################################################################################################################-->
         <div class="tab-pane fade in" id="file-write-container">
           <div class="well sidebar-nav-fixed">
             <div class="row">
@@ -133,13 +161,59 @@
       </div> <!--Tab Content-->
     </div>
 
+    <!--VECTOR SAVE CONFIRM MODAL-->
+    <div class="modal fade" tabindex="-1" role="dialog" id="mdl-vector-save">
+      <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="hd-save-model">Save Vector File</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <label for="txt-vector-save-name">Save Vector File as:</label>
+            
+            <input class="form-control" type="text" id="txt-vector-save-name">
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+            <button type="button" class="btn btn-primary" onclick="save_vector_file($('#txt-vector-save-name').val())">Save File</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!--VECTOR RESET CONFIRM MODAL-->
+    <div class="modal fade" tabindex="-1" role="dialog" id="mdl-vector-reset">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="hd-save-model">Reset Biases</h5>
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+            <div class="modal-body">
+              <label for="txt-vector-save-name">This will undo any unsaved changes made.</label>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+              <button type="button" class="btn btn-primary" onclick="reset_vector_file()">Reset Values</button>
+            </div>
+          </div>
+        </div>
+      </div>
     <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
     <script src="js/jquery-2.2.3.min.js"></script>
     <!-- Include all compiled plugins (below), or include individual files as needed -->
     <script src="js/bootstrap-3.3.6-dist/js/bootstrap.min.js"></script>
     <script src="js/bootstrap-3.3.6-dist/js/bootstrap-switch.min.js"></script>
     <script src="js/bootstrap-slider-10.2.1/js/bootstrap-slider.min.js"></script>
+    
     <script src="js/qem_server.js"></script>
+    <script src="js/qem_calibrator.js"></script>
+    <script src="js/vector_file_manager.js"></script>
 
   </body>
 </html>

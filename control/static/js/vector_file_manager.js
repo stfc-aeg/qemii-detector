@@ -5,19 +5,46 @@
  * Adam Neaves, Applicaiton Engineering Group, STFC. 2019
  */
 
- selected_vector_file = 'None Selected';
+ var selected_vector_file = 'None Selected';
+ var bias_names;
 
 $(document).ready(function() {
     console.log("VECTOR FILE MANAGER LOADED");
+    $('#mdl-vector-save').on("show.bs.modal", function(){
+        console.log("Modal Shown");
+        $('#txt-vector-save-name').val(selected_vector_file);
+    });
+
+    get_vector_file();
+    getFileName();
+    getVectorBiases();
+    get_vector_file_list();
 });
 
+function interface_set_disable(disabled)
+{
+    console.log("Interface Enabled: " + !disabled);
+    for(var key in bias_names)
+    {
+        var txt = $('#txt_' + key);
+        txt.attr("disabled", disabled);
+    }
+    $('#btn-select-vector').attr("disabled", disabled);
+    $('#btn-save-vector').attr("disabled", disabled);
+    $('#btn-reset-vector').attr("disabled", disabled);
+    $('#btn-load-vector').attr("disabled", disabled);
+    
+}
+
 function getVectorBiases(){
-    console.log("Get Vector File");
+    console.log("Get Vector File Bias");
     $.getJSON('/api/' + api_version + "/qem_detector/fems/fem_0/vector_file/bias", function(response){
-        biases = response.bias;
-        table_body = $('#tbl-body-bias');
-        for(var key in biases){
-            value = biases[key];
+        bias_names = response.bias;
+        var table_body = $('#tbl-body-bias');
+        // delete all current rows
+        table_body.empty();
+        for(var key in bias_names){
+            var value = bias_names[key];
             console.log(key + ": " + value);
             row = biasTableRow(key, value);
             table_body.append(row);
@@ -27,17 +54,42 @@ function getVectorBiases(){
 }
 
 function biasTableRow(name, val){
+
+    var txt_name = "txt_" + name;
+    var bin_val = get_binary_string(val);
+
+    //create all needed elements
     var row = document.createElement("tr");
     var name_col = document.createElement("td");
     var val_col = document.createElement("td");
+    var txt_box = document.createElement("input");
+    var form_div = document.createElement("div");
+    var form_lbl = document.createElement("label");
+    var name_div = document.createElement("div");
 
+
+    form_lbl.setAttribute("for", txt_name);
+    form_div.setAttribute("class", "form-group");
+    txt_box.setAttribute("id", txt_name);
+    txt_box.setAttribute("value", val);
+    name_col.setAttribute("class", "col-md-6");
+    val_col.setAttribute("class", "col-md-6");
+    form_lbl.setAttribute("id", "lbl_" + name);
+
+    form_div.appendChild(txt_box);
+    form_div.appendChild(form_lbl);
+    name_col.appendChild(name_div);
     row.appendChild(name_col);
     row.appendChild(val_col);
 
-    bin_val = val.toString(2);
-    val_col.innerHTML = "000000".substr(bin_val.length) + bin_val;
-    name_col.innerHTML = name;
+    txt_box.classList.add("form-control");
+    txt_box.addEventListener("focusout", function(){
+        set_bias_val(name, txt_box.value);
+    });
 
+    val_col.appendChild(form_div);
+    form_lbl.innerHTML = bin_val;
+    name_div.innerHTML = "<p>" + name + "</p>";
     return row;
 
 }
@@ -57,7 +109,7 @@ function get_vector_file_list() {
             }else{
                 image_list.push(file);
             }
-            //ul.append('<li><a class="dropdown-item"href="#">'+ list[item] + '</a></li>')
+
         }
         ul.append('<li class="dropdown-header">Calibration Vector Files</li>')
         for(var cal_item = 0; cal_item < calibrate_list.length; cal_item++){
@@ -77,26 +129,23 @@ function get_vector_file_list() {
 }
 
 function set_vector_file() {
+    interface_set_disable(true);
     $.ajax({
         type: "PUT",
-        url: '/api/' + api_version +'/qem_detector/fems/fem_0/',
+        url: '/api/' + api_version +'/qem_detector/fems/fem_0/vector_file',
         contentType: "application/json",
-        data: JSON.stringify({"selected_vector_file": selected_vector_file})
+        data: JSON.stringify({"file_name": selected_vector_file})
     }).done(
         function(){
-            $('#btn-load-vector').removeClass('btn-success');
-            $('#btn-load-vector').removeClass("disabled");
-            $('#btn-load-vector').disabled = false;
-            $('#btn-load-vector').addClass('btn-primary');
-            $('#btn-load-vector').html("Upload vector File");
+            getVectorBiases();
+            interface_set_disable(false);
         }
     )
-
 }
 
 function get_vector_file(){
-    $.getJSON('/api/' + api_version +'/qem_detector/fems/fem_0/selected_vector_file', function(response){
-        selected_vector_file = response.selected_vector_file;
+    $.getJSON('/api/' + api_version +'/qem_detector/fems/fem_0/vector_file/file_name', function(response){
+        selected_vector_file = response.file_name;
         console.log(selected_vector_file);
         $('#btn-select-vector').html(selected_vector_file + '<span class="caret"></span>');
     });
@@ -104,18 +153,71 @@ function get_vector_file(){
 
 function upload_vector_file(){
     console.log("Uploading " + selected_vector_file);
+    interface_set_disable(true);
     $.ajax({
         type: "PUT",
         url: '/api/' + api_version +'/qem_detector/fems/fem_0/',
         contentType: "application/json",
         data: JSON.stringify({"load_vector_file": "default"})
     }).done(
+        interface_set_disable(false)
+    )
+}
+
+function set_bias_val(bias, val){
+    console.log("Setting Bias " + bias + " to: " + val);
+    var dict = {};
+    dict[bias] = parseInt(val);
+    $.ajax({
+        type: "PUT",
+        url: '/api/' + api_version +'/qem_detector/fems/fem_0/vector_file/bias',
+        contentType: "application/json",
+        data: JSON.stringify(dict)
+    }).done(
         function(){
-            $('#btn-load-vector').removeClass("btn-primary");
-            $('#btn-load-vector').addClass("btn-success");
-            $('#btn-load-vector').addClass("disabled");
-            $('#btn-load-vector').disabled = true;
-            $('#btn-load-vector').html("Vector File Uploaded");
+            
+            bin_val = get_binary_string(val);
+            console.log("Changing lbl_" + bias + " to " + bin_val);
+            lbl_name = "lbl_" + bias;
+            lbl = document.getElementById(lbl_name);
+            lbl.innerHTML = bin_val;
+        }
+    )
+}
+
+function get_binary_string(val){
+    int_val = parseInt(val);
+    return "000000".substr(int_val.toString(2).length) + int_val.toString(2);
+}
+
+function save_vector_file(file_name){
+    console.log("Saving Vectors as " + file_name);
+    selected_vector_file = file_name;
+    $.ajax({
+        type: "PUT",
+        url: '/api/' + api_version +'/qem_detector/fems/fem_0/vector_file/',
+        contentType: "application/json",
+        data: JSON.stringify({"save": file_name})
+    }).done(
+        function(){
+            get_vector_file_list();
+            $('#btn-select-vector').html(selected_vector_file + ' <span class="caret"></span>');
+            $('#mdl-vector-save').modal('hide');
+        }
+    )
+}
+
+function reset_vector_file(){
+    console.log("Resetting vectors to file: " + selected_vector_file);
+    $.ajax({
+        type: "PUT",
+        url: '/api/' + api_version +'/qem_detector/fems/fem_0/vector_file/',
+        contentType: "application/json",
+        data: JSON.stringify({"reset": ""})
+    }).done(
+        function(){
+            getVectorBiases();
+            $('#mdl-vector-reset').modal('hide');
         }
     )
 }

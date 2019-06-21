@@ -4,6 +4,7 @@ $(document).ready(function() {
 
 function start_calibrate_coarse(){
     console.log("Starting Coarse Calibration");
+    set_calibrate_interface_disable(true);
     $.ajax({
         type: "PUT",
         url: '/api/' + api_version +'/qem_detector/calibrator/',
@@ -19,6 +20,7 @@ function start_calibrate_coarse(){
 
 function start_calibrate_fine(){
     console.log("Starting Fine Calibration");
+    set_calibrate_interface_disable(true);
     $.ajax({
         type: "PUT",
         url: '/api/' + api_version +'/qem_detector/calibrator/',
@@ -34,6 +36,7 @@ function start_calibrate_fine(){
 
 function start_plot_coarse(){
     console.log("Starting Coarse Plot");
+    set_calibrate_interface_disable(true);
     $.ajax({
         type: "PUT",
         url: '/api/' + api_version +'/qem_detector/calibrator/',
@@ -49,6 +52,7 @@ function start_plot_coarse(){
 
 function start_plot_fine(){
     console.log("Starting Fine Plot");
+    set_calibrate_interface_disable(true);
     $.ajax({
         type: "PUT",
         url: '/api/' + api_version +'/qem_detector/calibrator/',
@@ -63,12 +67,18 @@ function start_plot_fine(){
 }
 
 function check_calibration_flag(){
-    $.getJSON('/api/' + api_version +'/qem_detector/calibrator/calibration_complete', function(response){
-        if(response.calibration_complete == false){
+    $.getJSON('/api/' + api_version +'/qem_detector/calibrator/', function(response){
+        if(response.calibrator.calibration_complete == false){
+            var current_val = response.calibrator.calibration_vals.current;
+            var max_val = response.calibrator.calibration_vals.max - 1;
+            var progress_percent = (current_val / max_val) *100;
+            $('#prg-calibrate-progress').attr("style", "width: " + progress_percent +"%");
+            $('#prg-calibrate-progress').html(Math.round(progress_percent) + "%");
             window.setTimeout(check_calibration_flag, 100);
         }else{
             console.log("Calibration Complete");
-            set_label(false, "Calibration"); 
+            set_label(false, "Calibration");
+            set_calibrate_interface_disable(false);
         }
     });
 }
@@ -80,6 +90,7 @@ function check_plot_flag(){
         }else{
             console.log("Plot Complete");
             set_label(false, "Plot");
+            set_calibrate_interface_disable(false);
             //refresh graphs
             coarse_graph = $('#coarse-graph');
             fine_graph = $('#fine-graph');
@@ -107,4 +118,11 @@ function set_label(in_progress, label_type){
         label.addClass("label-success");
         label.html(label_type + ": Not in Progress"); 
     }
+}
+
+function set_calibrate_interface_disable(disabled) {
+    $('#btn-cal-coarse').attr("disabled", disabled);
+    $('#btn-cal-fine').attr("disabled", disabled);
+    $('#btn-plot-coarse').attr("disabled", disabled);
+    $('#btn-plot-fine').attr("disabled", disabled);
 }
