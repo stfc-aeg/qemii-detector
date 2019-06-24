@@ -31,6 +31,10 @@ body {
     margin-top: 5px;
 }
 
+input[type="number"]{
+    text-align: right;
+}
+
 .btn-group{
     margin: 5px;
 }

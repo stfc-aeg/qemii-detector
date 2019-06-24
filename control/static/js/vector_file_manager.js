@@ -45,12 +45,34 @@ function getVectorBiases(){
         var table_body = $('#tbl-body-bias');
         // delete all current rows
         table_body.empty();
+        var row_array = [];
+        var i = 0;
         for(var key in bias_names){
             var value = bias_names[key];
             console.log(key + ": " + value);
-            row = biasTableRow(key, value);
-            table_body.append(row);
-
+            row_array.push(biasTableRow(key, value));
+            
+            if(i % 2){
+                console.log("Adding rows to table: " + row_array);
+                var row = document.createElement("div");
+                row.setAttribute("class", "row");
+                row_array.forEach(function(child){
+                    console.log(child);
+                    row.appendChild(child);
+                });
+                table_body.append(row);
+                row_array = [];
+            }
+            i++;
+        }
+        if(row_array.length!= 0){
+            var row = document.createElement("div");
+                row_array.forEach(function(child){
+                    console.log(child);
+                    row.appendChild(child);
+                });
+                row.setAttribute("class", "row");
+                table_body.append(row);
         }
     });
 }
@@ -61,17 +83,26 @@ function biasTableRow(name, val){
     var bin_val = get_binary_string(val);
 
     //create all needed elements
-    var row = document.createElement("tr");
-    var name_col = document.createElement("td");
-    var val_col = document.createElement("td");
+    // var row = [];
+
+    // var name_col = document.createElement("div");
+    // var val_col = document.createElement("div");
     var txt_box = document.createElement("input");
-    var form_div = document.createElement("div");
-    var form_lbl = document.createElement("label");
-    var name_div = document.createElement("div");
+    var form_group = document.createElement("div");
+    var name_span = document.createElement("span");
+    var bin_span = document.createElement("span");
+    var col_div = document.createElement("div");
+    // var form_lbl = document.createElement("label");
+    // var name_div = document.createElement("div");
 
 
-    form_lbl.setAttribute("for", txt_name);
-    form_div.setAttribute("class", "form-group");
+    // form_lbl.setAttribute("for", txt_name);
+    form_group.setAttribute("class", "input-group mb-3");
+    col_div.setAttribute("class", "col-sm-6");
+
+    name_span.setAttribute("class", "input-group-addon");
+    bin_span.setAttribute("class", "input-group-addon");
+    bin_span.setAttribute("id", "lbl_" + name);
     
     txt_box.setAttribute("id", txt_name);
     txt_box.setAttribute("value", val);
@@ -79,21 +110,29 @@ function biasTableRow(name, val){
     txt_box.setAttribute("min", "0");
     txt_box.setAttribute("max", "63");
 
-    
-    name_col.setAttribute("class", "col-md-6");
-    val_col.setAttribute("class", "col-md-6");
-    form_lbl.setAttribute("id", "lbl_" + name);
+    name_span.innerHTML = name + ":";
+    bin_span.innerHTML = bin_val;
 
-    form_div.appendChild(txt_box);
-    form_div.appendChild(form_lbl);
-    name_col.appendChild(name_div);
-    row.appendChild(name_col);
-    row.appendChild(val_col);
+    form_group.appendChild(name_span);
+    form_group.appendChild(txt_box);
+    form_group.appendChild(bin_span);
+    
+    col_div.appendChild(form_group);
+    // name_col.setAttribute("class", "col-sm");
+    // val_col.setAttribute("class", "col-sm");
+    // form_lbl.setAttribute("id", "lbl_" + name);
+
+    // form_div.appendChild(txt_box);
+    // form_div.appendChild(form_lbl);
+    // name_col.appendChild(name_div);
+    // row.push(name_col);
+    // row.push(val_col);
 
     txt_box.classList.add("form-control");
     txt_box.addEventListener("change", function(){
         set_bias_val(name, txt_box.value);
     });
+
     txt_box.addEventListener("keyup", function(event){
         //keycode 13 is the enter key
         if(event.keyCode === 13){
@@ -102,10 +141,10 @@ function biasTableRow(name, val){
         }
     });
 
-    val_col.appendChild(form_div);
-    form_lbl.innerHTML = bin_val;
-    name_div.innerHTML = "<p>" + name + "</p>";
-    return row;
+    // val_col.appendChild(form_div);
+    // form_lbl.innerHTML = bin_val;
+    // name_div.innerHTML = "<p>" + name + "</p>";
+    return col_div;
 
 }
 

@@ -106,6 +106,8 @@
                 </button>
                 <ul id="lst-vector-files" class="dropdown-menu"></ul>
               </div>
+            </div>
+            <div class="row">
               <br/>
               <div class="form-inline">
                 <button id="btn-save-vector" class="btn btn-primary" type="button" data-toggle="modal" data-target="#mdl-vector-save">
@@ -115,9 +117,16 @@
                   Reset Vector File
                 </button>
               </div>
-              <table class="table table-striped" id="tbl-vector-bias">
+            </div>
+            <div class="row">
+              <div class="container-fluid" id="tbl-body-bias">
+
+              </div>
+              <!-- <table class="table table-striped" id="tbl-vector-bias">
                 <thread>
                 <tr>
+                  <th scope="col">Bias Name</th>
+                  <th scope="col">Bias Value</th>
                   <th scope="col">Bias Name</th>
                   <th scope="col">Bias Value</th>
                 </tr>
@@ -125,7 +134,7 @@
                 <tbody id="tbl-body-bias">
                 </tbody>
                                   
-              </table>
+              </table> -->
               <button id="btn-load-vector" class="btn btn-primary" onclick="upload_vector_file()">Upload Vector File</button>
             </div>
           </div>
