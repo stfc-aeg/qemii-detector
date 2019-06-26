@@ -196,7 +196,9 @@ class QemCalibrator():
         # frames, delay = config.split(":")
         frames = 1  # int(frames)
         delay = 0  # int(delay)
-
+        if self.calibration_complete is False:
+            logging.debug("Calibration Already Running")
+            return
         if calibrate == "true":
             logging.debug("Started Coarse Calibration")
             self.set_cal_complete(False)
@@ -225,7 +227,9 @@ class QemCalibrator():
         # frames, delay = config.split(":")
         frames = 1
         delay = 0
-
+        if self.calibration_complete is False:
+            logging.debug("Calibration Already Running")
+            return
         if calibrate == "true":
             logging.debug("Started Fine Calibration")
             self.set_cal_complete(False)
@@ -276,6 +280,9 @@ class QemCalibrator():
         /aeg_sw/work/projects/qem/python/03052018/fine.png
         """
         logging.debug("START PLOT FINE")
+        if self.plot_complete is False:
+            logging.debug("Plot already running")
+            return
         self.set_plot_complete(False)
         # voltages for the plot
         voltages = []
@@ -324,6 +331,9 @@ class QemCalibrator():
         /aeg_sw/work/projects/qem/python/03052018/coarse.png
         """
         logging.debug("START PLOT COARSE")
+        if self.plot_complete is False:
+            logging.debug("Plot already running")
+            return
         self.set_plot_complete(False)
         # array of voltages for the plot
         voltages = []
@@ -345,7 +355,6 @@ class QemCalibrator():
         f.close()
         # process the files in filelist
         for frame in dataset:
-            logging.debug("FRAME SHAPE: %s", frame.shape)
             column = self.get_coarse_bits_column(list(frame), 33)
             # average the data
             average = sum(column) / len(column)
@@ -368,7 +377,6 @@ class QemCalibrator():
     def set_backplane_register(self, register, value):
         """Sets the value of a resistor on the backplane
         """
-        # logging.debug("Setting Register %s to %d", register, value)
         data = {register: {"register": value}}
         request = ApiAdapterRequest(data)
         response = self.proxy_adapter.put("backplane", request)
