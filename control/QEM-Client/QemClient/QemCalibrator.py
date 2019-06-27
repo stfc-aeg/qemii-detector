@@ -37,13 +37,14 @@ class QemCalibrator():
 
     thread_executor = futures.ThreadPoolExecutor(max_workers=1)
 
-    def __init__(self, coarse_calibration_value, data_file, data_dir, fems):
+    def __init__(self, coarse_calibration_value, data_file, data_dir, fems, daq):
         self.calibration_complete = True
         self.plot_complete = True
         self.coarse_calibration_value = coarse_calibration_value
         self.data_file = data_file
         self.data_dir = data_dir
         self.qem_fems = fems
+        self.qem_daq = daq
 
         self.max_calibration = 4096
         self.min_calibration = 0
@@ -202,7 +203,7 @@ class QemCalibrator():
         if calibrate == "true":
             logging.debug("Started Coarse Calibration")
             self.set_cal_complete(False)
-
+            self.qem_daq.start_acquisition()
             for fem in self.qem_fems:
                 fem.setup_camera()  # qem fem reference
                 fem.get_aligner_status()  # qem fem reference
@@ -233,6 +234,7 @@ class QemCalibrator():
         if calibrate == "true":
             logging.debug("Started Fine Calibration")
             self.set_cal_complete(False)
+            self.qem_daq.start_acquisition()
             for fem in self.qem_fems:
                 fem.setup_camera()  # qem fem reference
                 fem.get_aligner_status()  # qem fem reference
@@ -256,6 +258,7 @@ class QemCalibrator():
         else:
             logging.debug("Calibration Complete")
             self.set_cal_complete(True)
+            self.qem_daq.stop_acquisition()
         return
 
     def fine_calibration_loop(self, delay, frames):
@@ -268,6 +271,7 @@ class QemCalibrator():
         else:
             logging.debug("Calibration Complete")
             self.set_cal_complete(True)
+            self.qem_daq.stop_acquisition()
         return
 
     @run_on_executor(executor='thread_executor')

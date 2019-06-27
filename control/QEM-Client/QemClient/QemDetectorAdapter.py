@@ -20,6 +20,7 @@ from odin.adapters.adapter import ApiAdapter, ApiAdapterRequest, ApiAdapterRespo
 from odin.adapters.parameter_tree import ParameterTree, ParameterTreeError
 
 from odin.adapters.proxy import ProxyAdapter
+from FileInterface.adapter import FileInterfaceAdapter
 from odin_data.live_view_adapter import LiveViewAdapter
 from odin_data.frame_processor_adapter import FrameProcessorAdapter
 from odin_data.frame_receiver_adapter import FrameReceiverAdapter
@@ -28,7 +29,7 @@ from odin._version import get_versions
 
 from QemCalibrator import QemCalibrator
 from QemFem import QemFem
-
+from QemDAQ import QemDAQ
 
 class QemDetectorAdapter(ApiAdapter):
     """Top Level Adapter for the QEM Control system.
@@ -141,8 +142,8 @@ class QemDetector():
 
 # server_data_ip = 10.0.2.2
 # camera_data_ip = 10.0.2.102
-    def __init__(self):
-        self.daq = QemDAQ()
+    def __init__(self, file_dir="/scratch/qem/QEM_AN_CALIBRATION/", file_name="adam_test_4"):
+        self.daq = QemDAQ(file_dir, file_name)
         # only one FEM for QEM, QEMII will have multiple (up to 4)
         fems = [QemFem(
             ip_address="192.168.0.122",
@@ -160,18 +161,19 @@ class QemDetector():
 
             fem_tree["fem_{}".format(fem.id)] = fem.param_tree
 
-        self.file_dir = "/scratch/qem/QEM_AN_CALIBRATION/"  # TODO: these should be configurable
-        self.file_name = "adam_test_4"
+        self.file_dir = file_dir
+        self.file_name = file_name
         self.file_writing = False
-        self.calibrator = QemCalibrator(0, self.file_name, self.file_dir, fems)
+        self.calibrator = QemCalibrator(0, self.file_name, self.file_dir, fems, self.daq)
         self.param_tree = ParameterTree({
-            "file_info": {
-                "file_path": (lambda: self.file_dir, self.set_data_dir),
-                "file_name": (lambda: self.file_name, self.set_file_name),
-                "file_write": (lambda: self.file_writing, self.set_file_writing)
-            },
+            # "file_info": {
+            #     "file_path": (lambda: self.file_dir, self.set_data_dir),
+            #     "file_name": (lambda: self.file_name, self.set_file_name),
+            #     "file_write": (lambda: self.file_writing, self.set_file_writing)
+            # },
             "calibrator": self.calibrator.param_tree,
-            "fems": fem_tree
+            "fems": fem_tree,
+            "daq": self.daq.param_tree
         })
 
         self.adapters = {}
@@ -223,17 +225,10 @@ class QemDetector():
             elif isinstance(adapter, LiveViewAdapter):
                 logging.debug("%s is Live View Adapter", name)
                 self.adapters["liveview"] = adapter
+            elif isinstance(adapter, FileInterfaceAdapter):
+                logging.debug("%s is File Interface Adapter", name)
+                self.adapters["file_interface"] = adapter
 
         self.calibrator.initialize(self.adapters)
+        self.daq.initialize(self.adapters)
 
-
-class QemDAQ():
-    """Encapsulates all the functionaility to initiate the DAQ.
-
-    Configures the Frame Receiver and Frame Processor plugins
-    Configures the HDF File Writer Plugin
-    Configures the Live View Plugin
-    """
-
-    def __init__(self):
-        pass
