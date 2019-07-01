@@ -34,14 +34,14 @@ function changeWriteState(state){
     console.log("Changing Write State to: " + state);
     $.ajax({
         type: "PUT",
-        url: '/api/' + api_version +'/qem_detector/file_info/',
+        url: '/api/' + api_version +'/qem_detector/daq/file_info/',
         contentType: "application/json",
         data: JSON.stringify({"file_write": state})
     });
 }
 
 function getFileName(){
-    $.getJSON('/api/' + api_version +'/qem_detector/file_info/file_name', function(response){
+    $.getJSON('/api/' + api_version +'/qem_detector/daq/file_info/file_name', function(response){
         file_write_name = response.file_name;
         txt_box = $('#txt-file-name');
         console.log(file_write_name);
@@ -55,7 +55,7 @@ function setFileName(){
     console.log("Setting File name to " + file_name)
     $.ajax({
         type: "PUT",
-        url: '/api/' + api_version +'/qem_detector/file_info/',
+        url: '/api/' + api_version +'/qem_detector/daq/file_info/',
         contentType: "application/json",
         data: JSON.stringify({"file_name": file_name})
     });

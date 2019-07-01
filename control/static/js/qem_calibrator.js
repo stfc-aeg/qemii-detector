@@ -1,5 +1,8 @@
 $(document).ready(function() {
     console.log("QEM CALIBRATOR LOADED");
+    check_calibration_flag();
+    check_plot_flag();
+
 });
 
 function start_calibrate_coarse(){
@@ -72,9 +75,14 @@ function check_calibration_flag(){
             var current_val = response.calibrator.calibration_vals.current;
             var max_val = response.calibrator.calibration_vals.max - 1;
             var progress_percent = (current_val / max_val) *100;
+            
             $('#prg-calibrate-progress').attr("style", "width: " + progress_percent +"%");
             $('#prg-calibrate-progress').html(Math.round(progress_percent) + "%");
+
+            set_label(true, "Calibration");
+            set_calibrate_interface_disable(true);
             window.setTimeout(check_calibration_flag, 100);
+            
         }else{
             console.log("Calibration Complete");
             set_label(false, "Calibration");
@@ -86,6 +94,8 @@ function check_calibration_flag(){
 function check_plot_flag(){
     $.getJSON('/api/' + api_version +'/qem_detector/calibrator/plot_complete', function(response){
         if(response.plot_complete == false){
+            set_label(true, "Plot");
+            set_calibrate_interface_disable(true);
             window.setTimeout(check_plot_flag, 100);
         }else{
             console.log("Plot Complete");
