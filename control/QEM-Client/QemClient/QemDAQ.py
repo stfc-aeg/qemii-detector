@@ -16,7 +16,7 @@ class QemDAQ():
     Configures the Live View Plugin
     """
 
-    def __init__(self, save_file_dir="", save_file_name=""):
+    def __init__(self, save_file_dir="", save_file_name="", config_dir=""):
         self.adapters = {}
         # self.data_config_dir = config_dir
         # self.fr_config_file = ""
@@ -51,6 +51,8 @@ class QemDAQ():
         self.adapters["fp"] = adapters['fp']
         self.adapters["fr"] = adapters['fr']
         self.adapters["file_interface"] = adapters['file_interface']
+        self.get_fp_config_file()
+        self.get_fr_config_file()
 
     def start_acquisition(self):
         """Ensures the odin data FP and FR are configured, and turn on File Writing

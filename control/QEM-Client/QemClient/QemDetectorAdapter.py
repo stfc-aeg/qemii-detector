@@ -47,7 +47,7 @@ class QemDetectorAdapter(ApiAdapter):
         """
         # Intialise superclass
         super(QemDetectorAdapter, self).__init__(**kwargs)
-        self.qem_detector = QemDetector()
+        self.qem_detector = QemDetector(self.options)
         self.adapters = {}
         logging.debug('QemDetector Adapter loaded')
 
@@ -142,17 +142,49 @@ class QemDetector():
 
 # server_data_ip = 10.0.2.2
 # camera_data_ip = 10.0.2.102
-    def __init__(self, file_dir="/scratch/qem/QEM_AN_CALIBRATION/", file_name="adam_test_4"):
-        self.daq = QemDAQ(file_dir, file_name)
-        # only one FEM for QEM, QEMII will have multiple (up to 4)
-        fems = [QemFem(
-            ip_address="192.168.0.122",
-            port="8070",
-            id=0,
-            server_ctrl_ip_addr="10.0.1.2",
-            camera_ctrl_ip_addr="10.0.1.102",
-            server_data_ip_addr="10.0.2.2",
-            camera_data_ip_addr="10.0.2.102")]
+    def __init__(self, options):
+
+        defaults = QemDetectorDefaults()
+        self.file_dir = options.get("save_dir", defaults.save_dir)
+        self.file_name = options.get("save_file", defaults.save_file)
+        self.vector_file_dir = options.get("vector_file_dir", defaults.vector_file_dir)
+        self.vector_file = options.get("vector_file_name", defaults.vector_file)
+
+        self.daq = QemDAQ(self.file_dir, self.file_name)
+
+        fems = []
+        for key, value in options.items():
+            logging.debug("%s: %s", key, value)
+            if "fem" in key:
+                fem_info = value.split(',')
+                fem_info = [(i.split('=')[0], i.split('=')[1]) for i in fem_info]
+                fem_dict = {fem_key.strip(): fem_value.strip() for (fem_key, fem_value) in fem_info}
+                logging.debug(fem_dict)
+
+                fems.append(QemFem(
+                    ip_address=fem_dict.get("ip_addr", defaults.fem["ip_addr"]),
+                    port=fem_dict.get("port", defaults.fem["port"]),
+                    id=fem_dict.get("id", defaults.fem["id"]),
+                    server_ctrl_ip_addr=fem_dict.get("server_ctrl_ip_addr", defaults.fem["server_ctrl_ip"]),
+                    camera_ctrl_ip_addr=fem_dict.get("camera_ctrl_ip_addr", defaults.fem["camera_ctrl_ip"]),
+                    server_data_ip_addr=fem_dict.get("server_data_ip_addr", defaults.fem["server_data_ip"]),
+                    camera_data_ip_addr=fem_dict.get("camera_data_ip_addr", defaults.fem["camera_data_ip"]),
+                    vector_file_dir=self.vector_file_dir,
+                    vector_file=self.vector_file
+                ))
+        
+        if not fems:  # if fems is empty
+            fems.append(QemFem(
+                ip_address=defaults.fem["ip_addr"],
+                port=defaults.fem["port"],
+                id=defaults.fem["id"],
+                server_ctrl_ip_addr=defaults.fem["server_ctrl_ip"],
+                camera_ctrl_ip_addr=defaults.fem["camera_ctrl_ip"],
+                server_data_ip_addr=defaults.fem["server_data_ip"],
+                camera_data_ip_addr=defaults.fem["camera_data_ip"],
+                vector_file_dir=self.vector_file_dir,
+                vector_file=self.vector_file
+            ))
 
         fem_tree = {}
         for fem in fems:
@@ -161,16 +193,9 @@ class QemDetector():
 
             fem_tree["fem_{}".format(fem.id)] = fem.param_tree
 
-        self.file_dir = file_dir
-        self.file_name = file_name
         self.file_writing = False
         self.calibrator = QemCalibrator(0, self.file_name, self.file_dir, fems, self.daq)
         self.param_tree = ParameterTree({
-            # "file_info": {
-            #     "file_path": (lambda: self.file_dir, self.set_data_dir),
-            #     "file_name": (lambda: self.file_name, self.set_file_name),
-            #     "file_write": (lambda: self.file_writing, self.set_file_writing)
-            # },
             "calibrator": self.calibrator.param_tree,
             "fems": fem_tree,
             "daq": self.daq.param_tree
@@ -182,6 +207,8 @@ class QemDetector():
         return self.param_tree.get(path)
 
     def set(self, path, data):
+        # perhaps hijack the message here and run the acquisition prep
+        # before passing the message on to the param_tree?
         logging.debug("SET:\n PATH: %s\n DATA: %s", path, data)
         return self.param_tree.set(path, data)
 
@@ -232,3 +259,20 @@ class QemDetector():
         self.calibrator.initialize(self.adapters)
         self.daq.initialize(self.adapters)
 
+
+class QemDetectorDefaults():
+
+    def __init__(self):
+        self.save_dir = "/scratch/qem/QEM_AN_CALIBRATION/"
+        self.save_file = "default_file"
+        self.vector_file_dir = "/aeg_sw/work/projects/qem/python/03052018/"
+        self.vector_file = "QEM_D4_198_ADC_10_icbias30_ifbias24.txt"
+        self.fem = {
+            "ip_addr": "192.168.0.122",
+            "port": "8070",
+            "id": 0,
+            "server_ctrl_ip": "10.0.1.2",
+            "camera_ctrl_ip": "10.0.1.102",
+            "server_data_ip": "10.0.2.2",
+            "camera_data_ip": "10.0.2.102"
+        }

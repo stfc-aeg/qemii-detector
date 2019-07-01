@@ -160,7 +160,8 @@ class FileInterface():
             'server_uptime': (self.get_server_uptime, None),
             'fr_config_files': (self.get_fr_config_files, None),
             'fp_config_files': (self.get_fp_config_files, None),
-            'vector_files': (self.get_vector_files, None)
+            'vector_files': (self.get_vector_files, None),
+            'config_dir': (self.odin_data_config_dir, None)
         })
 
     def get_server_uptime(self):
@@ -200,7 +201,7 @@ class FileInterface():
         """
         self.clear_lists()
         logging.debug(self.odin_data_config_dir)
-        for file in os.listdir(self.odin_data_config_dir):
+        for file in os.listdir(os.path.expanduser(self.odin_data_config_dir)):
             logging.debug(file)
             if file.endswith('.json') and "qemii" in file:
                 self.txt_files.append(file)
