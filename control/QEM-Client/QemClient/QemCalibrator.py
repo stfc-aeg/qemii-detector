@@ -41,8 +41,6 @@ class QemCalibrator():
         self.calibration_complete = True
         self.plot_complete = True
         self.coarse_calibration_value = coarse_calibration_value
-        self.data_file = data_file
-        self.data_dir = data_dir
         self.qem_fems = fems
         self.qem_daq = daq
 
@@ -161,15 +159,15 @@ class QemCalibrator():
         @returns : the list of filenames found
         """
         filenames = []
-        for file in glob.glob(self.data_dir + adc_type + "/*.h5"):
+        for file in glob.glob(self.qem_daq.file_dir + adc_type + "/*.h5"):
             filenames.append(file)
         filenames.sort()
         return filenames
 
     def get_h5_file(self):
-        files = glob.glob(self.data_dir + "/*h5")
+        files = glob.glob(self.qem_daq.file_dir + "/*h5")
         for filename in files:
-            if self.data_file in filename:
+            if self.qem_daq.file_name in filename:
                 return filename
         return "not_found"
 

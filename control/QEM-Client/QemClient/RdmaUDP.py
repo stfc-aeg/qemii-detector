@@ -33,8 +33,7 @@ class RdmaUDP(object):
         self.ack = False
 
     def __del__(self):
-        self.txsocket.close()
-        self.rxsocket.close()
+        self.close()
 
     def read(self, address, comment=''):
         """ Read 64 bits from the address.

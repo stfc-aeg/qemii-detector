@@ -146,16 +146,6 @@ class QemFem():
     
     def log_image_stream(self, file_name, num_images):
         logging.warning("Depreciated method 'log_image_stream'. Use Odin Data for data path")
-        # logging.debug("Logging image to file %s", file_name)
-        # logging.debug("AHHHHH WHAT IS FRAMES IT IS THIS: %d", num_images)
-        # self.frame_gate_settings(num_images-1, 0)
-        # self.frame_gate_trigger()
-        # image_set = self.x10g_stream.get_image_set(num_images)
-        # #write to hdf5 file
-        # file_name = file_name + '.h5'
-        # h5f = h5py.File(file_name, 'w')
-        # h5f.create_dataset('dataset_1', data=image_set)
-        # h5f.close()
         return
 
     def connect(self):
@@ -427,7 +417,6 @@ class QemFem():
         return
 
     def frame_gate_trigger(self):
-        logging.debug("TRIGGER CAPTURE")
         self.x10g_rdma.write(self.frm_gate+0,0x0,          'frame gate trigger off')
         self.x10g_rdma.write(self.frm_gate+0,0x1,          'frame gate trigger on')
         return
