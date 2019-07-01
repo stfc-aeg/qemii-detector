@@ -179,7 +179,6 @@ class VectorFile():
                 # state has changed from 1 to 0
                 self.dac_clock_refs.append(i)
                 self.dac_data_vector.append(row[DACDIN])
-                # logging.debug("Data on Line %d: %d", i, row[DACDIN])
             latch = clk_in
         self.clock_step = self.dac_clock_refs[1] - self.dac_clock_refs[0]
         self.convert_raw_dac_data()
@@ -215,7 +214,7 @@ class VectorFile():
 
         for i, line_num in enumerate(self.dac_clock_refs):  # for each clock edge
             # get slice of vector data, going from half the distance between clock edges above
-            for line in self.vector_data[line_num - self.clock_step: line_num + self.clock_step]:
+            for line in self.vector_data[line_num - (self.clock_step / 2): line_num + (self.clock_step / 2)]:
                 line[self.dac_dat_in] = self.dac_data_vector[i]
 
     def write_vector_file(self, file_name):
