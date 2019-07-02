@@ -12,7 +12,7 @@ function start_calibrate_coarse(){
         type: "PUT",
         url: '/api/' + api_version +'/qem_detector/calibrator/',
         contentType: "application/json",
-        data: JSON.stringify({"start_coarse_calibrate": "true"})
+        data: JSON.stringify({"start_calibrate": "coarse"})
     }).done(
         function(){
             set_label(true, "Calibration");
@@ -28,7 +28,7 @@ function start_calibrate_fine(){
         type: "PUT",
         url: '/api/' + api_version +'/qem_detector/calibrator/',
         contentType: "application/json",
-        data: JSON.stringify({"start_fine_calibrate": "true"})
+        data: JSON.stringify({"start_calibrate": "fine"})
     }).done(
         function(){
             set_label(true, "Calibration");
@@ -44,7 +44,7 @@ function start_plot_coarse(){
         type: "PUT",
         url: '/api/' + api_version +'/qem_detector/calibrator/',
         contentType: "application/json",
-        data: JSON.stringify({"start_coarse_plot": "true"})
+        data: JSON.stringify({"start_plot": "coarse"})
     }).done(
         function(){
             set_label(true, "Plot");
@@ -60,7 +60,7 @@ function start_plot_fine(){
         type: "PUT",
         url: '/api/' + api_version +'/qem_detector/calibrator/',
         contentType: "application/json",
-        data: JSON.stringify({"start_fine_plot": "true"})
+        data: JSON.stringify({"start_plot": "fine"})
     }).done(
         function(){
             set_label(true, "Plot");
@@ -71,7 +71,7 @@ function start_plot_fine(){
 
 function check_calibration_flag(){
     $.getJSON('/api/' + api_version +'/qem_detector/calibrator/', function(response){
-        if(response.calibrator.calibration_complete == false){
+        if(response.calibrator.is_busy == true){
             var current_val = response.calibrator.calibration_vals.current;
             var max_val = response.calibrator.calibration_vals.max - 1;
             var progress_percent = (current_val / max_val) *100;
@@ -92,8 +92,8 @@ function check_calibration_flag(){
 }
 
 function check_plot_flag(){
-    $.getJSON('/api/' + api_version +'/qem_detector/calibrator/plot_complete', function(response){
-        if(response.plot_complete == false){
+    $.getJSON('/api/' + api_version +'/qem_detector/calibrator/is_busy', function(response){
+        if(response.is_busy == true){
             set_label(true, "Plot");
             set_calibrate_interface_disable(true);
             window.setTimeout(check_plot_flag, 100);

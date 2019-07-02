@@ -5,7 +5,7 @@ Intelligent adapter that can communicate to all other loaded adapters lower down
 Bridges the gap between generic UI commands and detector specific business logic.
 
 Sophie Kirkham, Application Engineering Group, STFC. 2019
-Adam Neaves, Application Engineering Group, STFC. 2019
+Adam Neaves, Detector Systems Software Group, STFC. 2019
 """
 import logging
 import tornado
@@ -30,6 +30,7 @@ from odin._version import get_versions
 from QemCalibrator import QemCalibrator
 from QemFem import QemFem
 from QemDAQ import QemDAQ
+
 
 class QemDetectorAdapter(ApiAdapter):
     """Top Level Adapter for the QEM Control system.
@@ -162,17 +163,17 @@ class QemDetector():
                 logging.debug(fem_dict)
 
                 fems.append(QemFem(
-                    ip_address=fem_dict.get("ip_addr", defaults.fem["ip_addr"]),
-                    port=fem_dict.get("port", defaults.fem["port"]),
-                    id=fem_dict.get("id", defaults.fem["id"]),
-                    server_ctrl_ip_addr=fem_dict.get("server_ctrl_ip_addr", defaults.fem["server_ctrl_ip"]),
-                    camera_ctrl_ip_addr=fem_dict.get("camera_ctrl_ip_addr", defaults.fem["camera_ctrl_ip"]),
-                    server_data_ip_addr=fem_dict.get("server_data_ip_addr", defaults.fem["server_data_ip"]),
-                    camera_data_ip_addr=fem_dict.get("camera_data_ip_addr", defaults.fem["camera_data_ip"]),
-                    vector_file_dir=self.vector_file_dir,
-                    vector_file=self.vector_file
+                    fem_dict.get("ip_addr", defaults.fem["ip_addr"]),
+                    fem_dict.get("port", defaults.fem["port"]),
+                    fem_dict.get("id", defaults.fem["id"]),
+                    fem_dict.get("server_ctrl_ip_addr", defaults.fem["server_ctrl_ip"]),
+                    fem_dict.get("camera_ctrl_ip_addr", defaults.fem["camera_ctrl_ip"]),
+                    fem_dict.get("server_data_ip_addr", defaults.fem["server_data_ip"]),
+                    fem_dict.get("camera_data_ip_addr", defaults.fem["camera_data_ip"]),
+                    self.vector_file_dir,
+                    self.vector_file
                 ))
-        
+
         if not fems:  # if fems is empty
             fems.append(QemFem(
                 ip_address=defaults.fem["ip_addr"],
@@ -194,7 +195,7 @@ class QemDetector():
             fem_tree["fem_{}".format(fem.id)] = fem.param_tree
 
         self.file_writing = False
-        self.calibrator = QemCalibrator(0, self.file_name, self.file_dir, fems, self.daq)
+        self.calibrator = QemCalibrator(0, fems, self.daq)
         self.param_tree = ParameterTree({
             "calibrator": self.calibrator.param_tree,
             "fems": fem_tree,
@@ -211,29 +212,6 @@ class QemDetector():
         # before passing the message on to the param_tree?
         logging.debug("SET:\n PATH: %s\n DATA: %s", path, data)
         return self.param_tree.set(path, data)
-
-    def set_data_dir(self, directory):
-        self.file_dir = directory
-        self.calibrator.data_dir = self.file_dir
-
-    def set_file_name(self, name):
-        self.file_name = name
-        self.calibrator.data_file = self.file_name
-
-    def set_file_writing(self, writing):
-        self.file_writing = writing
-        # send command to Odin Data
-        command = "config/hdf/file/path"
-        request = ApiAdapterRequest(self.file_dir, content_type="application/json")
-        self.adapters["fp"].put(command, request)
-
-        command = "config/hdf/file/name"
-        request.body = self.file_name
-        self.adapters["fp"].put(command, request)
-
-        command = "config/hdf/write"
-        request.body = "{}".format(writing)
-        self.adapters["fp"].put(command, request)
 
     def initialize(self, adapters):
         """Get references to required adapters and pass those references to the classes that need
