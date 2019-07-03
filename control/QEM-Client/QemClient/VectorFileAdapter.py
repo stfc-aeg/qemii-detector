@@ -4,7 +4,7 @@ Opens, Updates, and uploads vector files to the FEM.
 
 Allows a user to change DAC settings, and plot the vector file much like a logic analyser would.
 
-Adam Neaves, Application Engineering Group, STFC. 2019
+Adam Neaves, Detector Systems Software Group, STFC. 2019
 """
 
 import logging
@@ -272,5 +272,5 @@ class VectorFile():
         # to write them all.
         for i, line_num in enumerate(self.dac_clock_refs):  # for each clock edge
             # get slice of vector data, full distance of clock edge with current edge in center
-            for line in self.vector_data[line_num - self.clock_step: line_num + self.clock_step]:
+            for line in self.vector_data[line_num - (self.clock_step / 2): line_num + (self.clock_step / 2)]:
                 line[self.dac_dat_in] = self.dac_data_vector[i]
