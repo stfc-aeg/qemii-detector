@@ -45,53 +45,6 @@ BIAS_NAMES = ["iBiasCol",        # 001100 - 0x0C - 12
               "iBiasPLL"]        # 010100 - 0x14 - 20
 
 
-class VectorFileAdapter(ApiAdapter):
-
-    def __init__(self, **kwargs):
-        """Initialize the Vector File Adapter object
-        """
-
-        super(VectorFileAdapter, self).__init__(**kwargs)
-
-        if self.options.get('file_name', False):
-            self.vector_file = VectorFile(self.options['file_name'], self.options['file_dir'])
-        else:
-            logging.warning("No Vector File selected.")
-
-    @response_types('application/json', default='application/json')
-    def get(self, path, request):
-
-        try:
-            response = self.vector_file.param_tree.get(path)
-            status_code = 200
-        except ParameterTreeError as e:
-            response = {"error": str(e)}
-            status_code = 400
-
-        content_type = 'application/json'
-        return ApiAdapterResponse(response, content_type=content_type,
-                                  status_code=status_code)
-
-    @request_types('application/json')
-    @response_types('application/json', default='application/json')
-    def put(self, path, request):
-        try:
-            data = convert_unicode_to_string(decode_request_body(request))
-            self.vector_file.param_tree.set(path, data)
-            response = self.vector_file.param_tree.get(path)
-            status_code = 200
-        except ParameterTreeError as e:
-            response = {'error': str(e)}
-            status_code = 400
-        except (TypeError, ValueError) as e:
-            response = {'error': 'Failed to decode PUT request body: {}'.format(str(e))}
-            status_code = 400
-
-        content_type = 'application/json'
-        return ApiAdapterResponse(response, content_type=content_type,
-                                  status_code=status_code)
-
-
 class VectorFile():
 
     def __init__(self, file_name, file_dir):
@@ -108,9 +61,9 @@ class VectorFile():
         self.bias = {}
 
         self.clock_step = 0
-        
+
         self.get_vector_information()
-        
+
         self.bias_tree = ParameterTree(
             # dict comprehension, like a one-line for loop
             # basically, for each bias, create a tuple of partial functions
