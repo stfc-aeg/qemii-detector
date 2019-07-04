@@ -14,7 +14,7 @@ from tornado.escape import json_decode
 from RdmaUDP import RdmaUDP
 from socket import error as socket_error
 from odin.adapters.parameter_tree import ParameterTree, ParameterTreeError
-from VectorFileAdapter import VectorFile
+from VectorFile import VectorFile
 
 
 class QemFemError(Exception):
