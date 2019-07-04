@@ -12,11 +12,10 @@ from tornado.ioloop import IOLoop
 from tornado.concurrent import run_on_executor
 from tornado.escape import json_decode
 from RdmaUDP import RdmaUDP
+from socket import error as socket_error
 from odin.adapters.parameter_tree import ParameterTree, ParameterTreeError
 from VectorFileAdapter import VectorFile
 
-BUSY = 1
-FREE = 0
 
 class QemFemError(Exception):
     """Simple exception class for PSCUData to wrap lower-level exceptions."""
@@ -31,7 +30,7 @@ class QemFem():
     """
     thread_executor = futures.ThreadPoolExecutor(max_workers=1)
 
-    def __init__(self, ip_address, port, id,
+    def __init__(self, ip_address, port, fem_id,
                  server_ctrl_ip_addr, camera_ctrl_ip_addr,
                  server_data_ip_addr, camera_data_ip_addr,
                  vector_file_dir="/aeg_sw/work/projects/qem/python/03052018/",
@@ -39,8 +38,7 @@ class QemFem():
 
         self.ip_address = ip_address
         self.port = port
-        self.id = id
-        self.state = FREE
+        self.id = int(fem_id)
         self.x10g_rdma = None
         self.x10g_stream = None
         self.server_ctrl_ip_addr = server_ctrl_ip_addr
@@ -48,9 +46,12 @@ class QemFem():
 
         self.server_data_ip_addr = server_data_ip_addr
         self.camera_data_ip_addr = camera_data_ip_addr
-
-        self.vector_file_dir = vector_file_dir
-        self.vector_file = VectorFile(vector_file, vector_file_dir)
+        if self.id == 0:
+            self.vector_file_dir = vector_file_dir
+            self.vector_file = VectorFile(vector_file, vector_file_dir)
+        else:
+            self.vector_file = None
+            self.vector_file_dir = None
 
         # qem 1 base addresses
         self.rmda_addr = {
@@ -80,20 +81,23 @@ class QemFem():
 
         self.pixel_extract   = [16, 13, 12, 11]
         #
-        self.debug_level = -1
         self.delay = 0
         self.strm_mtu = 8000
         self.rdma_mtu = 8000
         #
         self.frame_time = 1
 
-        self.param_tree = ParameterTree({
+        param_tree_dict = {
             "ip_addr": (self.get_address, None),
             "port": (self.get_port, None),
-            "vector_file": self.vector_file.param_tree,
-            "load_vector_file": (None, self.load_vectors_from_file),
-            "setup_camera": (None, self.setup_camera)
-        })
+            "setup_camera": (None, self.setup_camera),
+            "id": (self.id, None)
+        }
+        if self.id == 0:
+            param_tree_dict["vector_file"] = self.vector_file.param_tree
+            param_tree_dict["load_vector_file"] = (None, self.load_vectors_from_file)
+
+        self.param_tree = ParameterTree(param_tree_dict)
 
     def __del__(self):
         self.x10g_rdma.close()
@@ -116,22 +120,18 @@ class QemFem():
     def get_port(self):
         return self.port
 
-    def get_state(self):
-        return self.state
-
     def setup_camera(self, put_string="None"):
         logging.debug("SETTING UP CAMERA")
         self.set_ifg()
-        #self.set_clock() wasn't implemented in QEM-I
         self.x10g_rdma.debug = False
-        self.set_10g_mtu('data', 8000)
-        self.x10g_rdma.read(0x0000000C, '10G_0 MTU')
+        # self.set_10g_mtu('data', 8000)
+        # self.x10g_rdma.read(0x0000000C, '10G_0 MTU')
         # N.B. for scrambled data 10, 11, 12, 13 bit raw=> column size 360, 396
         self.set_10g_mtu('data', 7344)
-        self.set_image_size_2(102,288,11,16)
+        self.set_image_size(102, 288, 11, 16)
         #set idelay in 1 of 32 80fs steps  - d1, d0, c1, c0
         self.set_idelay(0,0,0,0)
-        time.sleep(1)
+        # time.sleep(1)
         locked = self.get_idelay_lock_status() != 0
         if locked:
             logging.debug("IDelay Locked: %s", locked)
@@ -153,14 +153,17 @@ class QemFem():
 
     def connect(self):
         #must be called as first method after instatiating class.
-        self.x10g_rdma = RdmaUDP(
-            self.server_ctrl_ip_addr, 61650,  # 10.0.1.2
-            self.server_ctrl_ip_addr, 61651,  # 10.0.1.2
-            self.camera_ctrl_ip_addr, 61650,  # 10.0.1.102
-            self.camera_ctrl_ip_addr, 61651,  # 10.0.1.102
-            2000000, 9000, 20)
-        self.x10g_rdma.setDebug(False)
-        self.x10g_rdma.ack = True
+        try:
+            self.x10g_rdma = RdmaUDP(
+                self.server_ctrl_ip_addr, 61650,  # 10.0.1.2
+                self.server_ctrl_ip_addr, 61651,  # 10.0.1.2
+                self.camera_ctrl_ip_addr, 61650,  # 10.0.1.102
+                self.camera_ctrl_ip_addr, 61651,  # 10.0.1.102
+                2000000, 9000, 20)
+            self.x10g_rdma.setDebug(False)
+            self.x10g_rdma.ack = True
+        except socket_error as e:
+            logging.error("Unable to Connect RdmaUDP: %s", e.message)
 
     def disconnect(self):
         # should be called on shutdown to close sockets
@@ -175,16 +178,16 @@ class QemFem():
 
     def stop_sequencer(self):
         self.x10g_rdma.write(self.rmda_addr["sequencer"], 0x0, 'qem seq null')
-        time.sleep(self.delay)
+        # time.sleep(self.delay)
         self.x10g_rdma.write(self.rmda_addr["sequencer"], 0x2, 'qem seq stop')
-        time.sleep(self.delay)
+        # time.sleep(self.delay)
         return
 
     def start_sequencer(self):
         self.x10g_rdma.write(self.rmda_addr["sequencer"], 0x0, 'qem seq null')
-        time.sleep(self.delay)
+        # time.sleep(self.delay)
         self.x10g_rdma.write(self.rmda_addr["sequencer"], 0x1, 'qem seq stop')
-        time.sleep(self.delay)
+        # time.sleep(self.delay)
         return
 
     def get_aligner_status(self):
@@ -193,10 +196,10 @@ class QemFem():
         aligner_status_0 = aligner_status & 0xFFFF
         aligner_status_1 = aligner_status >> 16 & 0xFFFF
         
-        time.sleep(self.delay)
+        # time.sleep(self.delay)
         return [aligner_status_1, aligner_status_0]
 
-    def set_idelay(self, data_1=0x00,cdn_1=0x00, data_0=0x00, cdn_0=0x00):
+    def set_idelay(self, data_1=0x00, cdn_1=0x00, data_0=0x00, cdn_0=0x00):
         data_cdn_word = data_1 << 24 | cdn_1 << 16 | data_0 << 8 | cdn_0
         address = self.rmda_addr["receiver"] | 0x02
         self.x10g_rdma.write(address, data_cdn_word, 'data_cdn_idelay word')
@@ -221,6 +224,7 @@ class QemFem():
         self.x10g_rdma.write(address, data_cdn_word, 'data_cdn_ivsr word')
         return
 
+    # Working with descrambling logic in place
     def set_image_size(self, x_size, y_size, p_size, f_size):
         # set image size globals
         self.image_size_x = x_size
@@ -232,46 +236,7 @@ class QemFem():
         number_bytes = pixel_count_max * 2
         number_bytes_r4 = pixel_count_max % 4
         number_bytes_r8 = number_bytes % 8
-        first_packets = number_bytes/self.strm_mtu
-        last_packet_size = number_bytes % self.strm_mtu
-        lp_number_bytes_r8 = last_packet_size % 8
-        lp_number_bytes_r32 = last_packet_size % 32
-        size_status = number_bytes_r4 + number_bytes_r8 + lp_number_bytes_r8 + lp_number_bytes_r32
-        # calculate pixel packing settings
-        if p_size >= 11 and p_size <= 13 and f_size == 16:
-            pixel_extract = self.pixel_extract.index(p_size)
-            pixel_count_max = pixel_count_max/2
-        elif p_size == 8 and f_size == 8:
-            pixel_extract = self.pixel_extract.index(p_size*2)
-            pixel_count_max = pixel_count_max/4
-        else:
-            size_status =size_status + 1
-
-        # set up registers if no size errors
-        if size_status != 0:
-            # WHO PRINTS TEXT LIKE THIS WHAT WHY?
-            logging.debug("Size Error %-8s %-8s %-8s %-8s %-8s %-8s", 'no_bytes', 'no_by_r4', 'no_by_r8', 'no_pkts', 'lp_no_by_r8', 'lp_n0_by_r32')
-            logging.debug("Size Error %8i %8i %8i %8i %8i %8i", number_bytes, number_bytes_r4, number_bytes_r8, first_packets, lp_number_bytes_r8, lp_number_bytes_r32)
-        else:
-            address = self.rmda_addr["receiver"] | 0x01
-            data = (pixel_count_max & 0x1FFFF) - 1
-            self.x10g_rdma.write(address, data, 'pixel count max')
-            self.x10g_rdma.write(self.rmda_addr["receiver"]+4, 0x3, 'pixel bit size => 16 bit')
-        return
-
-    # Working with descrambling logic in place
-    def set_image_size_2(self, x_size, y_size, p_size, f_size):
-        # set image size globals
-        self.image_size_x = x_size
-        self.image_size_y = y_size
-        self.image_size_p = p_size
-        self.image_size_f = f_size
-        # check parameters againts ethernet packet and local link frame size compatibility
-        pixel_count_max = x_size * y_size
-        number_bytes = pixel_count_max * 2
-        number_bytes_r4 = pixel_count_max % 4
-        number_bytes_r8 = number_bytes % 8
-        first_packets = number_bytes/self.strm_mtu
+        first_packets = number_bytes / self.strm_mtu
         last_packet_size = number_bytes % self.strm_mtu
         lp_number_bytes_r8 = last_packet_size % 8
         lp_number_bytes_r32 = last_packet_size % 32
@@ -279,9 +244,9 @@ class QemFem():
         # calculate pixel packing settings
         if p_size >= 11 and p_size <= 13:
             pixel_extract = self.pixel_extract.index(p_size)
-            pixel_count_max = y_size/2
+            pixel_count_max = y_size / 2
         else:
-            size_status =size_status + 1
+            size_status = size_status + 1
 
         # set up registers if no size errors
         if size_status != 0:
@@ -289,9 +254,9 @@ class QemFem():
             logging.debug("Size Error %8i %8i %8i %8i %8i %8i", number_bytes, number_bytes_r4, number_bytes_r8, first_packets, lp_number_bytes_r8, lp_number_bytes_r32 )
         else:
             address = self.rmda_addr["receiver"] | 0x01
-            data = (pixel_count_max & 0x1FFFF) -1
+            data = (pixel_count_max & 0x1FFFF) - 1
             self.x10g_rdma.write(address, data, 'pixel count max')
-            self.x10g_rdma.write(self.rmda_addr["receiver"]+4, p_size-10, 'Pixel size in bits 10,11,12 or 13')
+            self.x10g_rdma.write(self.rmda_addr["receiver"] + 4, p_size - 10, 'Pixel size in bits 10,11,12 or 13')
         return
 
     def get_idelay_lock_status(self):
@@ -303,10 +268,9 @@ class QemFem():
         else:
             return 0
 
-    @run_on_executor(executor='thread_executor')
+    # @run_on_executor(executor='thread_executor')
     def load_vectors_from_file(self, vector_file_name=None):
 
-        #extract lines into array
         init_length  = self.vector_file.vector_length
         loop_length  = self.vector_file.vector_loop_position
 
@@ -321,19 +285,19 @@ class QemFem():
             lower_vector_word = vector & 0xFFFFFFFF
             upper_vector_word = vector >> 32
             # load fpga block ram
-            ram_address = seq_address * 2 + 0xB1000000
+            ram_address = (seq_address * 2) + self.rmda_addr['sequencer'] + 0x01000000
             self.x10g_rdma.write(ram_address, lower_vector_word, 'qem seq ram loop 0')
-            time.sleep(self.delay)
+            # time.sleep(self.delay)
             ram_address = ram_address + 1
             self.x10g_rdma.write(ram_address, upper_vector_word, 'qem seq ram loop 0')
-            time.sleep(self.delay)
+            # time.sleep(self.delay)
 
         # set loop limit
-        self.x10g_rdma.write(0xB0000001, loop_length - 1, 'qem seq loop limit')
-        time.sleep(self.delay)
+        self.x10g_rdma.write(self.rmda_addr['sequencer'] + 1, loop_length - 1, 'qem seq loop limit')
+        # time.sleep(self.delay)
         # set init limit
-        self.x10g_rdma.write(0xB0000002, init_length - 1, 'qem seq init limit')
-        time.sleep(self.delay)
+        self.x10g_rdma.write(self.rmda_addr['sequencer'] + 2, init_length - 1, 'qem seq init limit')
+        # time.sleep(self.delay)
         self.start_sequencer()
         time.sleep(0.1)  # this sleep might have been the missing thing allowing this whole bloody thing to work?
         self.get_aligner_status()
@@ -350,19 +314,19 @@ class QemFem():
         return
 
     def frame_gate_trigger(self):
-        self.x10g_rdma.write(self.rmda_addr["frm_gate"] + 0,0x0,          'frame gate trigger off')
-        self.x10g_rdma.write(self.rmda_addr["frm_gate"] + 0,0x1,          'frame gate trigger on')
+        self.x10g_rdma.write(self.rmda_addr["frm_gate"], 0x0, 'frame gate trigger off')
+        self.x10g_rdma.write(self.rmda_addr["frm_gate"], 0x1, 'frame gate trigger on')
         return
 
     def frame_gate_settings(self, frame_number, frame_gap):
-        self.x10g_rdma.write(self.rmda_addr["frm_gate"] + 1,frame_number, 'frame gate frame number')
-        self.x10g_rdma.write(self.rmda_addr["frm_gate"] + 2,frame_gap,    'frame gate frame gap')
+        self.x10g_rdma.write(self.rmda_addr["frm_gate"] + 1, frame_number, 'frame gate frame number')
+        self.x10g_rdma.write(self.rmda_addr["frm_gate"] + 2, frame_gap,    'frame gate frame gap')
 
-    def set_10g_mtu(self,core_num, new_mtu):
+    def set_10g_mtu(self, core_num, new_mtu):
         #mtu is set in clock cycles where each clock is 8 bytes -2
-        val_mtu = new_mtu/8-2
+        val_mtu = new_mtu / 8 - 2
 
-        if core_num =='control':
+        if core_num == 'control':
             address = self.rmda_addr["udp_10G_control"]
             self.rdma_mtu = new_mtu
             self.x10g_rdma.UDPMax = new_mtu
