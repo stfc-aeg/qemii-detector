@@ -148,7 +148,7 @@ class QemCalibrator():
         self.qem_daq.start_acquisition()
         for fem in self.qem_fems:
             fem.setup_camera()
-            fem.get_aligner_status() # TODO: is this required?
+            fem.get_aligner_status()  # TODO: is this required?
             locked = fem.get_idelay_lock_status()
             if not locked:
                 fem.load_vectors_from_file()
@@ -157,8 +157,8 @@ class QemCalibrator():
             logging.debug("Setting fine auxsample to max")
             self.set_backplane_register("AUXSAMPLE_FINE", self.max_calibration - 1)
         else:
-            self.set_backplane_register("AUXSAMPLE_COARSE", 2000)
-        
+            self.set_backplane_register("AUXSAMPLE_COARSE", self.coarse_calibration_value)
+
         self.calibration_value = self.min_calibration
 
         IOLoop.instance().add_callback(self.calibration_loop, register=register_name)

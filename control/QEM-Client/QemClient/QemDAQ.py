@@ -51,6 +51,9 @@ class QemDAQ():
             }
         })
 
+    def __del__(self):
+        self.cleanup()
+
     def initialize(self, adapters):
         self.adapters["fp"] = adapters['fp']
         self.adapters["fr"] = adapters['fr']

@@ -153,17 +153,14 @@ class QemFem():
 
     def connect(self):
         #must be called as first method after instatiating class.
-        try:
-            self.x10g_rdma = RdmaUDP(
-                self.server_ctrl_ip_addr, 61650,  # 10.0.1.2
-                self.server_ctrl_ip_addr, 61651,  # 10.0.1.2
-                self.camera_ctrl_ip_addr, 61650,  # 10.0.1.102
-                self.camera_ctrl_ip_addr, 61651,  # 10.0.1.102
-                2000000, 9000, 20)
-            self.x10g_rdma.setDebug(False)
-            self.x10g_rdma.ack = True
-        except socket_error as e:
-            logging.error("Unable to Connect RdmaUDP: %s", e.message)
+        self.x10g_rdma = RdmaUDP(
+            self.server_ctrl_ip_addr, 61650,  # 10.0.1.2
+            self.server_ctrl_ip_addr, 61651,  # 10.0.1.2
+            self.camera_ctrl_ip_addr, 61650,  # 10.0.1.102
+            self.camera_ctrl_ip_addr, 61651,  # 10.0.1.102
+            2000000, 9000, 20)
+        self.x10g_rdma.setDebug(False)
+        self.x10g_rdma.ack = True
 
     def disconnect(self):
         # should be called on shutdown to close sockets

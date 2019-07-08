@@ -202,7 +202,6 @@ class FileInterface():
         self.clear_lists()
         logging.debug(self.odin_data_config_dir)
         for file in os.listdir(os.path.expanduser(self.odin_data_config_dir)):
-            logging.debug(file)
             if file.endswith('.json') and "qemii" in file:
                 self.txt_files.append(file)
 

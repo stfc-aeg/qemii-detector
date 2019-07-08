@@ -197,7 +197,7 @@ class QemDetector():
             fem_tree["fem_{}".format(fem.id)] = fem.param_tree
 
         self.file_writing = False
-        self.calibrator = QemCalibrator(0, self.fems, self.daq)
+        self.calibrator = QemCalibrator(2000, self.fems, self.daq)
         self.param_tree = ParameterTree({
             "calibrator": self.calibrator.param_tree,
             "fems": fem_tree,
