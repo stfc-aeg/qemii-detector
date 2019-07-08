@@ -12,7 +12,6 @@ import logging
 
 
 class RdmaUDP(object):
-
     def __init__(self, MasterTxUDPIPAddress='192.168.0.1', MasterTxUDPIPPort=65535, 
                  MasterRxUDPIPAddress='192.168.0.1', MasterRxUDPIPPort=65536,
                  TargetTxUDPIPAddress='192.168.0.2', TargetTxUDPIPPort=65535,
@@ -22,6 +21,9 @@ class RdmaUDP(object):
         self.txsocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.rxsocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.rxsocket.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, RxUDPBuf)
+        # set sockets to be reusable to avoid the error when tornado reloads an edited server
+        self.rxsocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, True)
+        self.txsocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, True)
         self.rxsocket.bind((MasterRxUDPIPAddress, MasterRxUDPIPPort))
         self.txsocket.bind((MasterTxUDPIPAddress, MasterTxUDPIPPort))
 
