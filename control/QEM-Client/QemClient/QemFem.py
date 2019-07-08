@@ -335,3 +335,6 @@ class QemFem():
             self.strm_mtu = new_mtu
 
         self.x10g_rdma.write(address+0xC, val_mtu, 'set 10G mtu')
+
+    def cleanup(self):
+        self.disconnect()

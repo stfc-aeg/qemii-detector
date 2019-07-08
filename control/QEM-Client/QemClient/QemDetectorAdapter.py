@@ -124,6 +124,9 @@ class QemDetectorAdapter(ApiAdapter):
     def initialize(self, adapters):
         self.qem_detector.initialize(adapters)
 
+    def cleanup(self):
+        self.qem_detector.cleanup()
+
 
 class QemDetectorError(Exception):
     """Simple exception class for PSCUData to wrap lower-level exceptions."""
@@ -138,11 +141,7 @@ class QemDetector():
     hierarchy to perform DAQ, calibration runs and other generic control functions on the entire
     detector system (FEM-II's, Backplane, Data Path Packages etc.)
     """
-# server_ctrl_ip = 10.0.1.2
-# camera_ctrl_ip = 10.0.1.102
 
-# server_data_ip = 10.0.2.2
-# camera_data_ip = 10.0.2.102
     def __init__(self, options):
 
         defaults = QemDetectorDefaults()
@@ -150,10 +149,12 @@ class QemDetector():
         self.file_name = options.get("save_file", defaults.save_file)
         self.vector_file_dir = options.get("vector_file_dir", defaults.vector_file_dir)
         self.vector_file = options.get("vector_file_name", defaults.vector_file)
+        odin_data_dir = options.get("odin_data_dir", defaults.odin_data_dir)
+        odin_data_dir = os.path.expanduser(odin_data_dir)
 
-        self.daq = QemDAQ(self.file_dir, self.file_name)
+        self.daq = QemDAQ(self.file_dir, self.file_name, odin_data_dir=odin_data_dir)
 
-        fems = []
+        self.fems = []
         for key, value in options.items():
             logging.debug("%s: %s", key, value)
             if "fem" in key:
@@ -162,7 +163,7 @@ class QemDetector():
                 fem_dict = {fem_key.strip(): fem_value.strip() for (fem_key, fem_value) in fem_info}
                 logging.debug(fem_dict)
 
-                fems.append(QemFem(
+                self.fems.append(QemFem(
                     fem_dict.get("ip_addr", defaults.fem["ip_addr"]),
                     fem_dict.get("port", defaults.fem["port"]),
                     fem_dict.get("id", defaults.fem["id"]),
@@ -170,15 +171,16 @@ class QemDetector():
                     fem_dict.get("camera_ctrl_ip_addr", defaults.fem["camera_ctrl_ip"]),
                     fem_dict.get("server_data_ip_addr", defaults.fem["server_data_ip"]),
                     fem_dict.get("camera_data_ip_addr", defaults.fem["camera_data_ip"]),
+                    # vector file only required for the "main" FEM, fem_0
                     self.vector_file_dir,
                     self.vector_file
                 ))
 
-        if not fems:  # if fems is empty
-            fems.append(QemFem(
+        if not self.fems:  # if self.fems is empty
+            self.fems.append(QemFem(
                 ip_address=defaults.fem["ip_addr"],
                 port=defaults.fem["port"],
-                id=defaults.fem["id"],
+                fem_id=defaults.fem["id"],
                 server_ctrl_ip_addr=defaults.fem["server_ctrl_ip"],
                 camera_ctrl_ip_addr=defaults.fem["camera_ctrl_ip"],
                 server_data_ip_addr=defaults.fem["server_data_ip"],
@@ -188,14 +190,14 @@ class QemDetector():
             ))
 
         fem_tree = {}
-        for fem in fems:
+        for fem in self.fems:
             fem.connect()
             fem.setup_camera()
 
             fem_tree["fem_{}".format(fem.id)] = fem.param_tree
 
         self.file_writing = False
-        self.calibrator = QemCalibrator(0, fems, self.daq)
+        self.calibrator = QemCalibrator(0, self.fems, self.daq)
         self.param_tree = ParameterTree({
             "calibrator": self.calibrator.param_tree,
             "fems": fem_tree,
@@ -237,6 +239,11 @@ class QemDetector():
         self.calibrator.initialize(self.adapters)
         self.daq.initialize(self.adapters)
 
+    def cleanup(self):
+        self.daq.cleanup()
+        for fem in self.fems:
+            fem.cleanup()
+
 
 class QemDetectorDefaults():
 
@@ -245,6 +252,7 @@ class QemDetectorDefaults():
         self.save_file = "default_file"
         self.vector_file_dir = "/aeg_sw/work/projects/qem/python/03052018/"
         self.vector_file = "QEM_D4_198_ADC_10_icbias30_ifbias24.txt"
+        self.odin_data_dir = "~/develop/projects/qemii/install/"
         self.fem = {
             "ip_addr": "192.168.0.122",
             "port": "8070",

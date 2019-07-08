@@ -3,6 +3,7 @@ import logging
 import json
 
 from os import path
+from subprocess import Popen, PIPE
 
 from odin.adapters.adapter import ApiAdapterRequest
 from odin.adapters.parameter_tree import ParameterTree
@@ -16,13 +17,16 @@ class QemDAQ():
     Configures the Live View Plugin
     """
 
-    def __init__(self, save_file_dir="", save_file_name="", config_dir=""):
+    def __init__(self, save_file_dir="", save_file_name="", odin_data_dir=""):
         self.adapters = {}
         # self.data_config_dir = config_dir
         # self.fr_config_file = ""
         # self.fp_config_file = ""
         self.file_dir = save_file_dir
         self.file_name = save_file_name
+        self.odin_data_dir = odin_data_dir
+        logging.debug("ODIN DATA DIRECTORY: %s", self.odin_data_dir)
+        self.process_list = {}
         self.file_writing = False
         self.config_dir = ""
         self.config_files = {
@@ -57,16 +61,15 @@ class QemDAQ():
     def start_acquisition(self):
         """Ensures the odin data FP and FR are configured, and turn on File Writing
         """
-        fr_connected = self.is_fr_connected()
-        fp_connected = self.is_fr_connected()
-        if fr_connected is False or fp_connected is False:
-            logging.error("Odin Data not connected. Check if Frame Receiver/Processor running")
-            return
+
+        if self.is_fr_connected() is False:
+            self.run_odin_data("fr")
+        if self.is_fp_connected() is False:
+            self.run_odin_data("fp")
         if self.is_fr_configured() is False:
             # send config message to FR
             logging.debug("Configuring Frame Receiver")
             self.config_odin_data('fr')
-            pass
         if self.is_fp_configured() is False:
             logging.debug("Configuring Frame Processor")
             self.config_odin_data('fp')
@@ -178,4 +181,35 @@ class QemDAQ():
         logging.debug(config)
         request = ApiAdapterRequest(config, content_type="application/json")
         command = "config/config_file"
-        self.adapters[adapter].put(command, request)
+        response = self.adapters[adapter].put(command, request)
+        logging.warning(response.data)
+
+    def run_odin_data(self, process_name):
+        if process_name == "fr":
+            try:
+                logging.debug("RUNNING FRAME RECEIVER")
+                log_config = path.join(self.config_dir, "fr_log4cxx.xml")
+                self.process_list["frame_receiver"] = Popen(["./bin/frameReceiver", "--debug=2", 
+                                                             "--logconfig={}".format(log_config)],
+                                                            cwd=self.odin_data_dir)
+            except OSError as e:
+                logging.error("Failed to run Frame Receiver: %s", e)
+                return False
+        elif process_name == "fp":
+            try:
+                logging.debug("RUNNING FRAME PROCESSOR")
+                log_config = path.join(self.config_dir, "fp_log4cxx.xml")
+                self.process_list["frame_processor"] = Popen(["./bin/frameProcessor", "--debug=2",
+                                                              "--logconfig={}".format(log_config)],
+                                                             cwd=self.odin_data_dir)
+            except OSError as e:
+                logging.error("Failed to run Frame Processor: %s", e)
+                return False
+        else:
+            logging.warning("None Odin Data process passed: %s", process_name)
+            return False
+        return True
+
+    def cleanup(self):
+        for process in self.process_list:
+            self.process_list[process].terminate()
