@@ -149,6 +149,8 @@ class QemDetector():
         self.file_name = options.get("save_file", defaults.save_file)
         self.vector_file_dir = options.get("vector_file_dir", defaults.vector_file_dir)
         self.vector_file = options.get("vector_file_name", defaults.vector_file)
+        self.acq_num = options.get("acquisition_num_frames", defaults.acq_num)
+        self.acq_gap = options.get("acquisition_frame_gap", defaults.acq_gap)
         odin_data_dir = options.get("odin_data_dir", defaults.odin_data_dir)
         odin_data_dir = os.path.expanduser(odin_data_dir)
 
@@ -201,7 +203,12 @@ class QemDetector():
         self.param_tree = ParameterTree({
             "calibrator": self.calibrator.param_tree,
             "fems": fem_tree,
-            "daq": self.daq.param_tree
+            "daq": self.daq.param_tree,
+            "acquisition": {
+                "num_frames": (lambda: self.acq_num, self.set_acq_num),
+                "frame_gap": (lambda: self.acq_gap, self.set_acq_gap),
+                "start_acq": (None, self.acquisition)
+            }
         })
 
         self.adapters = {}
@@ -214,6 +221,12 @@ class QemDetector():
         # before passing the message on to the param_tree?
         logging.debug("SET:\n PATH: %s\n DATA: %s", path, data)
         return self.param_tree.set(path, data)
+
+    def set_acq_num(self, num):
+        self.acq_num = num
+
+    def set_acq_gap(self, gap):
+        self.acq_gap = gap
 
     def initialize(self, adapters):
         """Get references to required adapters and pass those references to the classes that need
@@ -244,6 +257,11 @@ class QemDetector():
         for fem in self.fems:
             fem.cleanup()
 
+    def acquisition(self, put_data):
+        self.daq.start_acquisition()
+        self.fems[0].frame_gate_settings(self.acq_num - 1, self.acq_gap)
+        self.fems[0].frame_gate_trigger()
+
 
 class QemDetectorDefaults():
 
@@ -253,6 +271,8 @@ class QemDetectorDefaults():
         self.vector_file_dir = "/aeg_sw/work/projects/qem/python/03052018/"
         self.vector_file = "QEM_D4_198_ADC_10_icbias30_ifbias24.txt"
         self.odin_data_dir = "~/develop/projects/qemii/install/"
+        self.acq_num = 4096
+        self.acq_gap = 1
         self.fem = {
             "ip_addr": "192.168.0.122",
             "port": "8070",
