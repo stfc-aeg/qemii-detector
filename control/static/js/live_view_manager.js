@@ -35,11 +35,11 @@ $(document).ready(function() {
             }
             if(load_time < img_pol_freq)
             {
-                $('#liveview-fps-lbl').innerHTML = (1000 / img_pol_freq).toFixed(2) + "Hz";
+                $('#liveview-fps-lbl').html((1000 / img_pol_freq).toFixed(2) + "Hz");
             }
             else
             {
-                $('#liveview-fps-lbl').innerHTML = (1000 / load_time).toFixed(2) + "Hz";
+                $('#liveview-fps-lbl').html((1000 / load_time).toFixed(2) + "Hz");
             }
         }
     });
@@ -56,7 +56,8 @@ $(document).ready(function() {
     size_slider = $('#size-range').slider({});
 
     size_slider.on('slideStop', changeSizeEvent);
-    size_slider.slider(!autosize_enable ? "enable" : "disable");
+    clip_slider.on('slideStop', changeClipEvent);
+
 
     $('#liveview-enable-chk').on('switchChange.bootstrapSwitch', function(event, state){
         changeLiveViewEnable();
@@ -65,7 +66,19 @@ $(document).ready(function() {
         changeAutosizeEnable();
     });
 
+    $('#liveview-clipping-chk').on('switchChange.bootstrapSwitch', function(event, state){
+        changeClippingEnable();
+    });
+
     buildColormapSelect();
+
+    $('#live-view-controls').on('shown.bs.collapse', function(){
+        // refresh sliders so that when they are shown, the tick marks display properly
+        size_slider.slider('refresh');
+        clip_slider.slider('refresh');
+        size_slider.slider(!autosize_enable ? "enable" : "disable");
+        clip_slider.slider(clip_enable ? "enable" : "disable");
+    });
 });
 
 
@@ -130,7 +143,7 @@ function changeLiveViewEnable()
     {
         updateImage();
     }
-};
+}
 
 function changeAutosizeEnable()
 {
@@ -138,7 +151,13 @@ function changeAutosizeEnable()
     console.log("Autosize Enabled: " + autosize_enable);
     size_slider.slider(!autosize_enable ? "enable" : "disable");
     resizeImage();
-};
+}
+
+function changeClippingEnable(){
+    clip_enable = $('#liveview-clipping-chk').bootstrapSwitch('state');
+    console.log("Clipping Enabled: " + clip_enable);
+    clip_slider.slider(clip_enable ? "enable" : "disable");
+}
 
 function changeSizeEvent(size_event)
 {
@@ -148,15 +167,16 @@ function changeSizeEvent(size_event)
     resizeImage();
 };
 
+function changeClipEvent(slide_event)
+{
+    var new_range = slide_event.value;
+    changeClipRange(new_range);
+}
+
 function updateImage()
 {
     img_start_time = new Date().getTime();
     img_elem.attr("src", img_elem.attr("data-src") + '?' +  new Date().getTime());
-
-    $.getJSON(api_url + "data_min_max", function(response)
-    {
-        updateClipRange(response.data_min_max, !clip_enable);
-    });
 };
 
 function resizeImage()
@@ -174,6 +194,7 @@ function resizeImage()
 
         
         size_slider.data('slider').setValue(Math.floor(width_scaling * 100));
+        img_scaling = width_scaling;
     }
 
     img_elem.width(img_scaling*img_width);
@@ -181,24 +202,25 @@ function resizeImage()
 
 };
 
-function updateClipRange(data_min_max, reset_current=false)
+function changeClipRange(clip_range=null)
 {
-    var data_min = parseInt(data_min_max[0]);
-    var data_max = parseInt(data_min_max[1]);
-
-    $('#clip_min').text(data_min);
-    $('#clip_max').text(data_max);
-
-    var current_values = clip_slider.data('slider').getValue();
-
-    if (reset_current) {
-        current_values = [data_min, data_max]
+    if(clip_range === null)
+    {
+        clip_range = [
+            clip_slider.slider('getAttribute', 'min'),
+            clip_slider.slider('getAttribute', 'max')
+        ]
+    }
+    if (!clip_enable)
+    {
+        clip_range = [null, null]
     }
 
-    // clip_slider.slider('setAttribute', 'max', data_max);
-    // clip_slider.slider('setAttribute', 'min', data_min);
-    clip_slider.slider('setAttribute', 'ticks', [data_min, data_max]);
-    clip_slider.slider('setAttribute', 'ticks_labels', [data_min, data_max]);
-    clip_slider.slider('refresh');
-    clip_slider.slider('setValue', current_values);
+    console.log('Clip range changed: min=' + clip_range[0] + " max=" + clip_range[1]);
+    $.ajax({
+        type: "PUT",
+        url: api_url,
+        contentType: "application/json",
+        data: JSON.stringify({"clip_range": clip_range})
+    });
 }
