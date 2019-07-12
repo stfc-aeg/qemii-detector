@@ -7,23 +7,22 @@ body {
     text-align: center;
 }
 
-
-#configuration-container{
-
-    text-align : center;
+.left-align{
+    text-align: left;
 }
 
-#calibration-container{
+.right-align {
+    text-align: right;
+}
+
+.range-lbl {
+    width: 49%;
+}
+
+.tab-pane {
     text-align: center;
 }
 
-#vector-file-container{
-    text-align: center;
-}
-
-#file-write-container{
-    text-align: center;
-}
 .input-group{
 
     width: 100%;
@@ -54,6 +53,11 @@ input[type="number"]{
 .progress{
     background-color: #cccccc;
 }
+
+.slider.slider-horizontal{
+    width: 100%;
+}
+
 #current-processor-file, #file-badge, #current-receiver-file{
 
     display: block;

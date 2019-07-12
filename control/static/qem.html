@@ -43,14 +43,13 @@
     <div class="container">
       <div class="odin-server">
         <h1>QEM Camera Control</h1>
-        <p>API version is:&nbsp;<span id="api-version">&nbsp;</span></p>
-        <p>Registered API adapters:&nbsp;<span id="api-adapters">&nbsp;</span></p>
       </div>
 
       <ul class="nav nav-tabs">
         <li class="active"><a data-toggle="pill" href="#calibration-container">Calibration</a></li>
         <li><a data-toggle="pill" href="#vector-file-container">Vector File</a></li>
         <li><a data-toggle="pill" href="#file-write-container">File Writer</a> </li>
+        <li><a data-toggle="pill" href="#live-view-container">Live View</a></li>
       </ul>
 
       <div class="tab-content">
@@ -122,19 +121,6 @@
               <div class="container-fluid" id="tbl-body-bias">
 
               </div>
-              <!-- <table class="table table-striped" id="tbl-vector-bias">
-                <thread>
-                <tr>
-                  <th scope="col">Bias Name</th>
-                  <th scope="col">Bias Value</th>
-                  <th scope="col">Bias Name</th>
-                  <th scope="col">Bias Value</th>
-                </tr>
-                </thread>
-                <tbody id="tbl-body-bias">
-                </tbody>
-                                  
-              </table> -->
               <button id="btn-load-vector" class="btn btn-primary" onclick="upload_vector_file()">Upload Vector File</button>
             </div>
           </div>
@@ -165,6 +151,95 @@
             </div>
           </div>
         </div><!--File Write Container-->
+
+        <!--LIVE VIEW TAB#################################################################################################################################-->
+        <div class="tab-pane fade in" id="live-view-container">
+          <div class="well sidebar-nav-fixed">
+            <div class="row">
+              <span>
+                <h2>Live View</h2>
+              </span>
+            </div>
+            <div class="row">
+              <form>
+                <div class="form-group">
+                  <div class="custom-control custom-switch">
+                    <label class="custom-control-label" for="liveview-enable-chk">Enable Live View</label>
+                    <input type="checkbox" class="custom-control-input" id="liveview-enable-chk" name="liveview-enable-chk">
+                  </div>
+                  <div id="live-image-container" class="live-image well">
+                    <img id='liveview_image' src='/api/0.1/live_view/image' data-src='/api/0.1/live_view/image'>
+                  </div>
+                  <button class="btn btn-primary" type="button" data-toggle="collapse" data-target="#live-view-controls">
+                    Show/Hide Advanced Controls
+                  </button>
+                </div><!--Form Group-->
+              </form>
+              <div class="collapse" id="live-view-controls">
+                <form>
+                  <div class="form-row">
+                    <div class="col-md-3 right-align">
+                      <div class="custom-control custom-switch">
+                        <label class="custom-control-label" for="liveview-resize-chk">Auto Resize</label>  
+                        <input type="checkbox" class="custom-control-input" id="liveview-resize-chk">
+                      </div>
+                    </div>
+                    <div class="col-md-9">
+                      <input class="custom-range" id="size-range" type="range"
+                      data-slider-min="0" data-slider-max="200" data-slider-value="100"
+                      data-slider-ticks="[0, 100, 200]" data-slider-ticks-labels='["0%", "100%", "200%"]'>
+                    </div>
+                  </div>
+                  <div class="form-row">
+                    <div class="col-md-12">
+                      <br/>
+                    </div>
+                  </div>
+                  <div class="form-row">
+                    <div class="col-md-3 right-align">
+                      <div class="custom-control custom-switch">
+                        <label class="custom-control-label" for="liveview-clipping-chk">Image Clipping</label>  
+                        <input type="checkbox" class="custom-control-input" id="liveview-clipping-chk">
+                      </div>
+                    </div>
+                    <div class="col-md-9">
+                      <input class="custom-range" id="clip-range" type="range"
+                      data-slider-min="0" data-slider-max="1024" data-slider-value="[0, 1024]"
+                      data-slider-ticks="[0, 1024]" data-slider-ticks-labels='["0", "1024"]'>
+                    </div>
+                  </div>
+                  <div class="form-row">
+                    <div class="col-md-12">
+                      <br/>
+                    </div>
+                  </div>
+                  <div class="form-row">
+                      <div class="col-md-2">
+                        <label class="custom-control-label" for="liveview-colourmap-drp">Colour Map</label>
+                      </div>
+                      <div class="col-md-4">
+                          <div class="dropup">
+                              <button class="btn btn-block btn-primary dropdown-toggle" type="button" id="liveview-colourmap-drp" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                Colour Map
+                                <span class="caret"></span>
+                              </button>
+                              <ul class="dropdown-menu" id="lst-liveview-colourmaps"></div>
+                      </div>
+                      <div class="col-md-3">
+                        <label for="liveview-fps-lbl">Frame Rate</label>
+                      </div>
+                      <div class="col-md-3">
+                        <label id="liveview-fps-lbl">30Hz</label>
+                      </div>
+                  </div>
+                    </div>
+                </form>
+                
+              </div><!--Collapseable Controls-->
+            </div>
+          </div>
+        </div><!--Live View Container-->
+
 
 
       </div> <!--Tab Content-->
@@ -230,6 +305,7 @@
     <script src="js/qem_server.js"></script>
     <script src="js/qem_calibrator.js"></script>
     <script src="js/vector_file_manager.js"></script>
+    <script src="js/live_view_manager.js"></script>
 
   </body>
 </html>
