@@ -3,7 +3,7 @@ import logging
 import json
 
 from os import path
-from subprocess import Popen, PIPE
+from subprocess import Popen
 
 from odin.adapters.adapter import ApiAdapterRequest
 from odin.adapters.parameter_tree import ParameterTree

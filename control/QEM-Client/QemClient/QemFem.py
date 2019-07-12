@@ -147,10 +147,6 @@ class QemFem():
         logging.debug("SETTING UP CAMERA: DONE")
     #Rob Halsall Code#
     
-    def log_image_stream(self, file_name, num_images):
-        logging.warning("Depreciated method 'log_image_stream'. Use Odin Data for data path")
-        return
-
     def connect(self):
         #must be called as first method after instatiating class.
         self.x10g_rdma = RdmaUDP(
