@@ -46,118 +46,50 @@
       </div>
 
       <ul class="nav nav-tabs">
-        <li class="active"><a data-toggle="pill" href="#calibration-container">Calibration</a></li>
+        <li class="active"><a data-toggle="pill" href="#acquisiton-container">QEM Acquisitions</a></li>
+        <li><a data-toggle="pill" href="#calibration-container">Calibration</a></li>
         <li><a data-toggle="pill" href="#vector-file-container">Vector File</a></li>
-        <li><a data-toggle="pill" href="#file-write-container">File Writer</a> </li>
-        <li><a data-toggle="pill" href="#live-view-container">Live View</a></li>
+        <!-- <li><a data-toggle="pill" href="#file-write-container">File Writer</a> </li>
+        <li><a data-toggle="pill" href="#live-view-container">Live View</a></li> -->
       </ul>
 
+
+
       <div class="tab-content">
-        <!--CALIBRATION TAB##############################################################################################################################-->
-        <div class="tab-pane fade in active" id="calibration-container">
+
+        <!--MAIN ACQUISITION TAB##################################################################################################################-->
+        <div class="tab-pane fade in active" id="acquisiton-container">
           <div class="well well-lg">
-            <div class="row">  
-              <span>  
-                <h2 id="calibration">QEM Calibration</h2>
-              </span>
-              <div class="col-md-12">
-                <span id="lbl-calibrate" class="label label-success">Calibration: Not Running</span>
-                <span id="lbl-plot" class="label label-success">Plotting: Not Running</span>
-              </div>
-              <div class="col-md-12">
-                <div class="progress">
-                  <div class="progress-bar bg-info" role="progressbar" id="prg-calibrate-progress" style="width: 0%"></div>
-                </div>
-              </div>
-              <div class="col-md-6">
-                <h4>Coarse</h4>
-                <div class="btn-group">
-                  <button id="btn-cal-coarse"  class="btn btn-default" type="button" onclick="start_calibrate_coarse()">Calibrate</button>
-                  <button id="btn-plot-coarse" class="btn btn-default" type="button" onclick="start_plot_coarse()">Plot</button>
-                </div>
-
-                <img id="coarse-graph" class="img-responsive" src="img/coarse_graph.png" data-src="img/coarse_graph.png" alt="Coarse Calibration Graph">
-              </div>
-              <div class="col-md-6">
-                <h4>Fine</h4>
-                <div class="btn-group">
-                  <button id="btn-cal-fine" class="btn btn-default" type="button" onclick="start_calibrate_fine()">Calibrate</button>
-                  <button id="btn-plot-fine" class="btn btn-default" type="button" onclick="start_plot_fine()">Plot</button>
-                </div>
-                <img id="fine-graph" class="img-responsive" src="img/fine_graph.png" data-src="img/fine_graph.png" alt="Fine Calibration Graph">
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!--VECTOR FILE TAB##############################################################################################################################-->
-        <div class="tab-pane fade in" id="vector-file-container">
-          <div class="well sidebar-nav-fixed">
             <div class="row">
               <span>
-                <h2>Vector File Manager</h2>
+                <h2>QEM Acquisitions</h2>
               </span>
-              <label class="label label-default" for=btn-select-vector>Select Vector File:</label>
-              <div class="dropdown">
-                <button id="btn-select-vector" class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown">
-                  Vector Files
-                  <span class="caret"></span>
-                </button>
-                <ul id="lst-vector-files" class="dropdown-menu"></ul>
-              </div>
-            </div>
-            <div class="row">
-              <br/>
-              <div class="form-inline">
-                <button id="btn-save-vector" class="btn btn-primary" type="button" data-toggle="modal" data-target="#mdl-vector-save">
-                  Save Vector File
-                </button>
-                <button id="btn-reset-vector" class="btn btn-warning" type="button" data-toggle="modal" data-target="#mdl-vector-reset">
-                  Reset Vector File
-                </button>
-              </div>
-            </div>
-            <div class="row">
-              <div class="container-fluid" id="tbl-body-bias">
-
-              </div>
-              <button id="btn-load-vector" class="btn btn-primary" onclick="upload_vector_file()">Upload Vector File</button>
-            </div>
-          </div>
-        </div><!--Vector File Container-->
-
-        <!--FILE WRITING TAB##############################################################################################################################-->
-        <div class="tab-pane fade in" id="file-write-container">
-          <div class="well sidebar-nav-fixed">
-            <div class="row">
-              <span>
-                <h2>Odin Data - File Writer</h2>
-              </span>
-            </div>
-            <div class="row">
-              <div class="col-sm-6">
-                <label for="txt-file-name">File Name</label>
-                <input class="form-control" type="text" id="txt-file-name" value="Test" oninput="checkFileName()">
-                <div class="btn-group" role="group" id="btngrp-file-name">
-                  <button type="button" class="btn btn-primary" id="btn-set-file-name" onclick="setFileName()">Set File Name</button>
-                  <button type="button" class="btn btn-secondary" id="btn-reset-file-name" onclick="getFileName() ">Reset File Name</button>
+              <form>
+                <div class="form-group row">
+                  <div class="col-md-6">
+                    <label for="txt-num-frames">Number of Frames:</label>
+                    <input type="number" class="form-control" id="txt-num-frames" min=1>
+                  </div>
+                  <div class="col-md-6">
+                    <label for="txt-frame-gap">Frame Gap:</label>
+                    <input type="number" class="form-control" id="txt-frame-gap" min=0 step=100>
+                  </div>
+                  <div class="col-md-12">
+                    <label for="txt-file-name">File Name</label>
+                    <input type="text" class="form-control" id="txt-file-name" oninput="checkFileName()">
+                  </div>
+                  <button type="submit" class="btn btn-secondary" onclick="setAcquisitionConfig()">Submit Configuration</button>
                 </div>
-              </div>
-              <div class="col-sm">
-                <label for="write-enabled">File Writing Enabled</label>
-                <br>
-                <input type="checkbox" id="write-enabled">
-              </div>
-            </div>
-          </div>
-        </div><!--File Write Container-->
+              </form>
 
-        <!--LIVE VIEW TAB#################################################################################################################################-->
-        <div class="tab-pane fade in" id="live-view-container">
-          <div class="well sidebar-nav-fixed">
+            </div>
+            <div class="row">
+                <button type="button" class="btn btn-primary btn-lg btn-block" onclick="startAcquisition()">Start Acquisition</button>
+            </div>
+            <hr>
             <div class="row">
               <span>
-                <h2>Live View</h2>
+                <h3>Live View</h3>
               </span>
             </div>
             <div class="row">
@@ -236,8 +168,193 @@
                 </form>
                 
               </div><!--Collapseable Controls-->
+          </div>
+        </div>
+        <!--CALIBRATION TAB##############################################################################################################################-->
+        <div class="tab-pane fade in" id="calibration-container">
+          <div class="well well-lg">
+            <div class="row">  
+              <span>  
+                <h2 id="calibration">QEM Calibration</h2>
+              </span>
+              <div class="col-md-12">
+                <span id="lbl-calibrate" class="label label-success">Calibration: Not Running</span>
+                <span id="lbl-plot" class="label label-success">Plotting: Not Running</span>
+              </div>
+              <div class="col-md-12">
+                <div class="progress">
+                  <div class="progress-bar bg-info" role="progressbar" id="prg-calibrate-progress" style="width: 0%"></div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <h4>Coarse</h4>
+                <div class="btn-group">
+                  <button id="btn-cal-coarse"  class="btn btn-default" type="button" onclick="start_calibrate_coarse()">Calibrate</button>
+                  <button id="btn-plot-coarse" class="btn btn-default" type="button" onclick="start_plot_coarse()">Plot</button>
+                </div>
+
+                <img id="coarse-graph" class="img-responsive" src="img/coarse_graph.png" data-src="img/coarse_graph.png" alt="Coarse Calibration Graph">
+              </div>
+              <div class="col-md-6">
+                <h4>Fine</h4>
+                <div class="btn-group">
+                  <button id="btn-cal-fine" class="btn btn-default" type="button" onclick="start_calibrate_fine()">Calibrate</button>
+                  <button id="btn-plot-fine" class="btn btn-default" type="button" onclick="start_plot_fine()">Plot</button>
+                </div>
+                <img id="fine-graph" class="img-responsive" src="img/fine_graph.png" data-src="img/fine_graph.png" alt="Fine Calibration Graph">
+              </div>
             </div>
           </div>
+        </div>
+
+        <!--VECTOR FILE TAB##############################################################################################################################-->
+        <div class="tab-pane fade in" id="vector-file-container">
+          <div class="well sidebar-nav-fixed">
+            <div class="row">
+              <span>
+                <h2>Vector File Manager</h2>
+              </span>
+              <label class="label label-default" for=btn-select-vector>Select Vector File:</label>
+              <div class="dropdown">
+                <button id="btn-select-vector" class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown">
+                  Vector Files
+                  <span class="caret"></span>
+                </button>
+                <ul id="lst-vector-files" class="dropdown-menu"></ul>
+              </div>
+            </div>
+            <div class="row">
+              <br/>
+              <div class="form-inline">
+                <button id="btn-save-vector" class="btn btn-primary" type="button" data-toggle="modal" data-target="#mdl-vector-save">
+                  Save Vector File
+                </button>
+                <button id="btn-reset-vector" class="btn btn-warning" type="button" data-toggle="modal" data-target="#mdl-vector-reset">
+                  Reset Vector File
+                </button>
+              </div>
+            </div>
+            <div class="row">
+              <div class="container-fluid" id="tbl-body-bias">
+
+              </div>
+              <button id="btn-load-vector" class="btn btn-primary" onclick="upload_vector_file()">Upload Vector File</button>
+            </div>
+          </div>
+        </div><!--Vector File Container-->
+
+        <!--FILE WRITING TAB##############################################################################################################################-->
+        <div class="tab-pane fade in" id="file-write-container">
+          <!-- <div class="well sidebar-nav-fixed">
+            <div class="row">
+              <span>
+                <h2>Odin Data - File Writer</h2>
+              </span>
+            </div>
+            <div class="row">
+              <div class="col-sm-6">
+                <label for="txt-file-name">File Name</label>
+                <input class="form-control" type="text" id="txt-file-name" value="Test" oninput="checkFileName()">
+                <div class="btn-group" role="group" id="btngrp-file-name">
+                  <button type="button" class="btn btn-primary" id="btn-set-file-name" onclick="setFileName()">Set File Name</button>
+                  <button type="button" class="btn btn-secondary" id="btn-reset-file-name" onclick="getFileName() ">Reset File Name</button>
+                </div>
+              </div>
+              <div class="col-sm">
+                <label for="write-enabled">File Writing Enabled</label>
+                <br>
+                <input type="checkbox" id="write-enabled">
+              </div>
+            </div>
+          </div> -->
+        </div><!--File Write Container-->
+
+        <!--LIVE VIEW TAB#################################################################################################################################-->
+        <div class="tab-pane fade in" id="live-view-container">
+          <!-- <div class="well sidebar-nav-fixed">
+            <div class="row">
+              <span>
+                <h2>Live View</h2>
+              </span>
+            </div>
+            <div class="row">
+              <form>
+                <div class="form-group">
+                  <div class="custom-control custom-switch">
+                    <label class="custom-control-label" for="liveview-enable-chk">Enable Live View</label>
+                    <input type="checkbox" class="custom-control-input" id="liveview-enable-chk" name="liveview-enable-chk">
+                  </div>
+                  <div id="live-image-container" class="live-image well">
+                    <img id='liveview_image' src='/api/0.1/live_view/image' data-src='/api/0.1/live_view/image'>
+                  </div>
+                  <button class="btn btn-primary" type="button" data-toggle="collapse" data-target="#live-view-controls">
+                    Show/Hide Advanced Controls
+                  </button>
+                </div>
+              </form>
+              <div class="collapse" id="live-view-controls">
+                <form>
+                  <div class="form-row">
+                    <div class="col-md-3 right-align">
+                      <div class="custom-control custom-switch">
+                        <label class="custom-control-label" for="liveview-resize-chk">Auto Resize</label>  
+                        <input type="checkbox" class="custom-control-input" id="liveview-resize-chk">
+                      </div>
+                    </div>
+                    <div class="col-md-9">
+                      <input class="custom-range" id="size-range" type="range"
+                      data-slider-min="0" data-slider-max="200" data-slider-value="100"
+                      data-slider-ticks="[0, 100, 200]" data-slider-ticks-labels='["0%", "100%", "200%"]'>
+                    </div>
+                  </div>
+                  <div class="form-row">
+                    <div class="col-md-12">
+                      <br/>
+                    </div>
+                  </div>
+                  <div class="form-row">
+                    <div class="col-md-3 right-align">
+                      <div class="custom-control custom-switch">
+                        <label class="custom-control-label" for="liveview-clipping-chk">Image Clipping</label>  
+                        <input type="checkbox" class="custom-control-input" id="liveview-clipping-chk">
+                      </div>
+                    </div>
+                    <div class="col-md-9">
+                      <input class="custom-range" id="clip-range" type="range"
+                      data-slider-min="0" data-slider-max="4096" data-slider-value="[0, 4096]"
+                      data-slider-ticks="[0, 4096]" data-slider-ticks-labels='["0", "4096"]'>
+                    </div>
+                  </div>
+                  <div class="form-row">
+                    <div class="col-md-12">
+                      <br/>
+                    </div>
+                  </div>
+                  <div class="form-row">
+                      <div class="col-md-2">
+                        <label class="custom-control-label" for="liveview-colourmap-drp">Colour Map</label>
+                      </div>
+                      <div class="col-md-4">
+                          <div class="dropup">
+                              <button class="btn btn-block btn-primary dropdown-toggle" type="button" id="liveview-colourmap-drp" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                Colour Map
+                                <span class="caret"></span>
+                              </button>
+                              <ul class="dropdown-menu" id="lst-liveview-colourmaps"></div>
+                      </div>
+                      <div class="col-md-3">
+                        <label for="liveview-fps-lbl">Frame Rate</label>
+                      </div>
+                      <div class="col-md-3">
+                        <label id="liveview-fps-lbl">30Hz</label>
+                      </div>
+                  </div>
+                    </div>
+                </form>
+                
+              </div>
+            </div>
+          </div> -->
         </div><!--Live View Container-->
 
 
@@ -306,6 +423,7 @@
     <script src="js/qem_calibrator.js"></script>
     <script src="js/vector_file_manager.js"></script>
     <script src="js/live_view_manager.js"></script>
+    <script src="js/qem_acquisition_manager.js"></script>
 
   </body>
 </html>

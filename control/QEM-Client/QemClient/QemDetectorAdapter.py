@@ -223,9 +223,11 @@ class QemDetector():
         return self.param_tree.set(path, data)
 
     def set_acq_num(self, num):
+        logging.debug("Number Frames: %d", num)
         self.acq_num = num
 
     def set_acq_gap(self, gap):
+        logging.debug("Frame Gap: %d", gap)
         self.acq_gap = gap
 
     def initialize(self, adapters):
@@ -259,6 +261,12 @@ class QemDetector():
 
     def acquisition(self, put_data):
         self.daq.start_acquisition()
+        for fem in self.fems:
+            fem.setup_camera()
+            fem.get_aligner_status()  # TODO: is this required?
+            locked = fem.get_idelay_lock_status()
+            if not locked:
+                fem.load_vectors_from_file()
         self.fems[0].frame_gate_settings(self.acq_num - 1, self.acq_gap)
         self.fems[0].frame_gate_trigger()
 
