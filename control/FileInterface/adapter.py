@@ -1,8 +1,10 @@
 """Demo adapter for ODIN control FileInterface
 
-This class implements a simple adapter used for demonstration purposes in a
+This adapter implements methods to connect directories containing the
+vector files and such things required for the QEM system
 
-Tim Nicholls, STFC Application Engineering
+Tim Nicholls, STFC Detector Systems Software Group
+Adam Neaves, STFC Detector Systems Software Group
 """
 import logging
 import tornado
@@ -144,8 +146,8 @@ class FileInterface():
         self.vector_files = []
         self.directories = directories
 
-        self.odin_data_config_dir = directories["odin_data"]
-        self.vector_file_dir = directories["vector_files"]
+        self.odin_data_config_dir = os.path.expanduser(directories["odin_data"])
+        self.vector_file_dir = os.path.expanduser(directories["vector_files"])
 
         # Store initialisation time
         self.init_time = time.time()
