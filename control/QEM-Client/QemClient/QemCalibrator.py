@@ -145,7 +145,7 @@ class QemCalibrator():
         self.busy = True
         register_name = "AUXSAMPLE_{}".format(calibrate_type)
         logging.debug(register_name)
-        self.qem_daq.start_acquisition()
+        self.qem_daq.start_acquisition(self.max_calibration)
         for fem in self.qem_fems:
             fem.setup_camera()
             fem.get_aligner_status()  # TODO: is this required?
@@ -173,7 +173,7 @@ class QemCalibrator():
         else:
             logging.debug("Calibration Complete")
             self.busy = False
-            self.qem_daq.stop_acquisition()
+            # self.qem_daq.stop_acquisition()
 
     @run_on_executor(executor='thread_executor')
     def adc_plot(self, plot_type):

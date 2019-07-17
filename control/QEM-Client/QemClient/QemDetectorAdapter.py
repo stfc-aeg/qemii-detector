@@ -260,7 +260,7 @@ class QemDetector():
             fem.cleanup()
 
     def acquisition(self, put_data):
-        self.daq.start_acquisition()
+        self.daq.start_acquisition(self.acq_num)
         for fem in self.fems:
             fem.setup_camera()
             fem.get_aligner_status()  # TODO: is this required?

@@ -7,6 +7,7 @@ from subprocess import Popen
 
 from odin.adapters.adapter import ApiAdapterRequest
 from odin.adapters.parameter_tree import ParameterTree
+from tornado.ioloop import IOLoop
 
 
 class QemDAQ():
@@ -25,6 +26,13 @@ class QemDAQ():
         self.file_dir = save_file_dir
         self.file_name = save_file_name
         self.odin_data_dir = odin_data_dir
+
+        self.in_progress = False
+
+        # these varables used to tell when an acquisiton is completed
+        self.frame_start_acquisition = 0  # number of frames received at start of acq
+        self.frame_end_acquisition = 0  # number of frames at end of acq (start + acq number)
+        
         logging.debug("ODIN DATA DIRECTORY: %s", self.odin_data_dir)
         self.process_list = {}
         self.file_writing = False
@@ -48,7 +56,8 @@ class QemDAQ():
                 "enabled": (lambda: self.file_writing, self.set_file_writing),
                 "file_name": (lambda: self.file_name, self.set_file_name),
                 "file_dir": (lambda: self.file_dir, self.set_data_dir)
-            }
+            },
+            "in_progress": (lambda: self.in_progress, None)
         })
 
     def __del__(self):
@@ -61,43 +70,74 @@ class QemDAQ():
         self.get_fp_config_file()
         self.get_fr_config_file()
 
-    def start_acquisition(self):
+    def start_acquisition(self, num_frames):
         """Ensures the odin data FP and FR are configured, and turn on File Writing
         """
+        logging.debug("Setting up Acquisition")
+        fr_status = self.get_od_status("fr")
+        fp_status = self.get_od_status("fp")
 
-        if self.is_fr_connected() is False:
+        if self.is_fr_connected(fr_status) is False:
             self.run_odin_data("fr")
-        if self.is_fp_connected() is False:
-            self.run_odin_data("fp")
-        if self.is_fr_configured() is False:
-            # send config message to FR
-            logging.debug("Configuring Frame Receiver")
-            self.config_odin_data('fr')
-        if self.is_fp_configured() is False:
-            logging.debug("Configuring Frame Processor")
-            self.config_odin_data('fp')
+            self.config_odin_data("fr")
+        elif self.is_fr_configured(fr_status) is False:
+            self.config_odin_data("fr")
+        else:
+            logging.debug("Frame Receiver Already connected/configured")
 
+        if self.is_fp_connected(fp_status) is False:
+            self.run_odin_data("fp")
+            self.config_odin_data("fp")
+        elif self.is_fp_configured(fp_status) is False:
+            self.config_odin_data("fp")
+        else:
+            logging.debug("Frame Processor Already connected/configured")
+
+        hdf_status = fp_status.get('hdf', None)
+        if hdf_status is None:
+            fp_status = self.get_od_status('fp')
+            # get current frame written number. if not found, assume FR
+            # just started up and it will be 0
+            hdf_status = fp_status.get('hdf', {"frames_written": 0})
+        self.frame_start_acquisition = hdf_status['frames_written']
+        self.frame_end_acquisition = self.frame_start_acquisition + num_frames
+        logging.info("FRAME START ACQ: %d END ACQ: %d", self.frame_start_acquisition, self.frame_end_acquisition)
+        self.in_progress = True
+        IOLoop.instance().add_callback(self.acquisition_check_loop)
         logging.debug("Starting File Writer")
         self.set_file_writing(True)
 
+    def acquisition_check_loop(self):
+        hdf_status = self.get_od_status('fp').get('hdf', {"frames_written": 0})
+        if hdf_status['frames_written'] == self.frame_end_acquisition:
+            self.stop_acquisition()
+            logging.debug("Acquisition Complete")
+        else:
+            IOLoop.instance().call_later(.5, self.acquisition_check_loop)
+
     def stop_acquisition(self):
-        # disable file writing so other processes can access the saved data (such as the calibration plotting)
+        # disable file writing so other processes can access the saved data 
+        # (such as the calibration plotting)
+        self.in_progress = False
         self.set_file_writing(False)
 
-    def is_fr_connected(self):
-        status = self.get_od_status("fr")
+    def is_fr_connected(self, status=None):
+        if status is None:
+            status = self.get_od_status("fr")
         return status.get("connected", False)
 
-    def is_fp_connected(self):
-        status = self.get_od_status("fp")
+    def is_fp_connected(self, status=None):
+        if status is None:
+            status = self.get_od_status("fp")
         return status.get("connected", False)
 
-    def is_fr_configured(self):
-        status = self.get_od_status("fr")
+    def is_fr_configured(self, status={}):
+        if status.get('status') is None:
+            status = self.get_od_status("fr")
         config_status = status.get("status", {}).get("configuration_complete", False)
         return config_status
 
-    def is_fp_configured(self):
+    def is_fp_configured(self, status=None):
         status = self.get_od_status("fp")
         config_status = status.get("plugins")  # if plugins key exists, it has been configured
         return config_status is not None
@@ -185,7 +225,6 @@ class QemDAQ():
         request = ApiAdapterRequest(config, content_type="application/json")
         command = "config/config_file"
         response = self.adapters[adapter].put(command, request)
-        logging.warning(response.data)
 
     def run_odin_data(self, process_name):
         if process_name == "fr":
