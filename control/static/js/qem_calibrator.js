@@ -70,12 +70,12 @@ function start_plot_fine(){
 }
 
 function check_calibration_flag(){
+
     $.getJSON('/api/' + api_version +'/qem_detector/calibrator/', function(response){
-        if(response.calibrator.is_busy == true){
-            var current_val = response.calibrator.calibration_vals.current;
-            var max_val = response.calibrator.calibration_vals.max - 1;
-            var progress_percent = (current_val / max_val) *100;
-            
+        var current_val = response.calibrator.calibration_vals.current;
+        var max_val = response.calibrator.calibration_vals.max - 1;
+        var progress_percent = (current_val / max_val) *100;
+        if(progress_percent < 100 && progress_percent != 0){ //if 0, the calibration isn't currently running
             $('#prg-calibrate-progress').attr("style", "width: " + progress_percent +"%");
             $('#prg-calibrate-progress').html(Math.round(progress_percent) + "%");
 
@@ -92,8 +92,8 @@ function check_calibration_flag(){
 }
 
 function check_plot_flag(){
-    $.getJSON('/api/' + api_version +'/qem_detector/calibrator/is_busy', function(response){
-        if(response.is_busy == true){
+    $.getJSON('/api/' + api_version +'/qem_detector/daq/in_progress', function(response){
+        if(response.in_progress == true){
             set_label(true, "Plot");
             set_calibrate_interface_disable(true);
             window.setTimeout(check_plot_flag, 100);
