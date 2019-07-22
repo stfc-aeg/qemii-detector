@@ -10,12 +10,6 @@ import logging
 import glob
 import h5py
 
-# set logging for MATPLOTLIB separatly to avoid a lot of debug spam
-mpl_logger = logging.getLogger('matplotlib')
-mpl_logger.setLevel(logging.WARNING)
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
 
 from tornado.ioloop import IOLoop
 from tornado.concurrent import run_on_executor
@@ -26,6 +20,13 @@ from odin.adapters.parameter_tree import ParameterTree
 from odin.adapters.proxy import ProxyAdapter
 # from odin_data.frame_processor_adapter import FrameProcessorAdapter
 # from odin_data.frame_receiver_adapter import FrameReceiverAdapter
+
+# set logging for MATPLOTLIB separatly to avoid a lot of debug spam
+mpl_logger = logging.getLogger('matplotlib')
+mpl_logger.setLevel(logging.WARNING)
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
 
 COARSE_BIT_MASK = 0x7C0
 FINE_BIT_MASK = 0x3F
@@ -43,7 +44,6 @@ class QemCalibrator():
     thread_executor = futures.ThreadPoolExecutor(max_workers=1)
 
     def __init__(self, coarse_calibration_value, fems, daq):
-        self.busy = False
         self.coarse_calibration_value = coarse_calibration_value
         self.qem_fems = fems
         self.qem_daq = daq
@@ -55,7 +55,6 @@ class QemCalibrator():
         self.calibration_value = 0
 
         self.param_tree = ParameterTree({
-            "is_busy": (lambda: self.busy, None),
             "start_calibrate": (None, self.adc_calibrate),
             "start_plot": (None, self.adc_plot),
             "calibration_vals": {
@@ -135,14 +134,13 @@ class QemCalibrator():
         return "not_found"
 
     def adc_calibrate(self, calibrate_type):
-        if self.busy:
+        if self.qem_daq.in_progress:
             logging.warning("Cannot Start Calibration: Calibrator is Busy")
             return
         calibrate_type = calibrate_type.upper().strip()
         if calibrate_type != "COARSE" and calibrate_type != "FINE":
             logging.warning("Cannot Start Calibration: Calibration type %s not recognised", calibrate_type)
             return
-        self.busy = True
         register_name = "AUXSAMPLE_{}".format(calibrate_type)
         logging.debug(register_name)
         self.qem_daq.start_acquisition(self.max_calibration)
@@ -172,12 +170,10 @@ class QemCalibrator():
             IOLoop.instance().call_later(0, self.calibration_loop, register)
         else:
             logging.debug("Calibration Complete")
-            self.busy = False
-            # self.qem_daq.stop_acquisition()
 
     @run_on_executor(executor='thread_executor')
     def adc_plot(self, plot_type):
-        if self.busy:
+        if self.qem_daq.in_progress:
             logging.warning("Cannot Start Plot: Calibrator is Busy")
             return
         plot_type = plot_type.lower().strip()
@@ -185,7 +181,6 @@ class QemCalibrator():
             logging.warning("Cannot Start Plot: Plot type %s not recognised", plot_type)
             return
         logging.debug("Start Plot %s", plot_type)
-        self.busy = True
         averages = []
         file_name = self.get_h5_file()
         f = h5py.File(file_name, 'r')
@@ -219,7 +214,6 @@ class QemCalibrator():
 
         fig.savefig("static/img/{}_graph.png".format(plot_type), dpi=100)
         fig.clf()
-        self.busy = False
         logging.debug("Plot Complete")
 
     def set_backplane_register(self, register, value):

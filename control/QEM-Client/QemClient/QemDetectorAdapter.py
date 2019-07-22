@@ -260,6 +260,9 @@ class QemDetector():
             fem.cleanup()
 
     def acquisition(self, put_data):
+        if self.daq.in_progress:
+            logging.warning("Cannot Start Acquistion: Already in progress")
+            return
         self.daq.start_acquisition(self.acq_num)
         for fem in self.fems:
             fem.setup_camera()
