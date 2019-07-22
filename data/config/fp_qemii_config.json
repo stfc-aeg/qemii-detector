@@ -31,7 +31,6 @@
         },
         "view": 
         {
-          "dataset_name": "data",
           "live_view_socket_addr": "tcp://127.0.0.1:5020"
         },
         
@@ -39,7 +38,7 @@
                   "load": {
                       "index": "hdf",
                       "name": "FileWriterPlugin",
-                      "library": "/aeg_sw/work/projects/qem/qem-ii/install/lib/libHdf5Plugin.so"
+                      "library": "../../../qemii/install/lib/libHdf5Plugin.so"
                   }
               }
           },
@@ -48,7 +47,7 @@
                   "load": {
                       "index": "qemii",
                       "name": "QemiiProcessPlugin",
-                      "library": "/aeg_sw/work/projects/qem/qem-ii/install/lib/libQemiiProcessPlugin.so"
+                      "library": "../../../install/lib/libQemiiProcessPlugin.so"
                   }
               }
           },
@@ -57,7 +56,7 @@
               "load": {
                 "index": "view",
                 "name": "LiveViewPlugin",
-                "library": "/aeg_sw/work/projects/qem/qem-ii/install/lib/libLiveViewPlugin.so"
+                "library": "../../../install/lib/libLiveViewPlugin.so"
               }
             }
           },
