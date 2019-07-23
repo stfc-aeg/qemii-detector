@@ -1,0 +1,62 @@
+body {
+    padding-top: 50px;
+}
+
+.odin-server {
+    padding: 40px 15px;
+    text-align: center;
+}
+
+.left-align{
+    text-align: left;
+}
+
+.right-align {
+    text-align: right;
+}
+
+
+.tab-pane {
+    text-align: center;
+}
+
+.input-group{
+
+    width: 100%;
+    text-align: center;
+    margin-top: 5px;
+}
+
+input[type="number"]{
+    text-align: right;
+}
+
+.btn-group{
+    margin: 5px;
+}
+
+#input-div{
+
+    width: 25%;
+}
+
+.dropdown-menu{
+
+    float: none;
+    text-align: center;
+    width: 100%;
+  
+}
+.progress{
+    background-color: #cccccc;
+}
+
+.slider.slider-horizontal{
+    width: 100%;
+}
+
+#current-processor-file, #file-badge, #current-receiver-file{
+
+    display: block;
+}
+
