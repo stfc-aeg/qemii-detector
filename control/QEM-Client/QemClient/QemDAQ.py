@@ -1,6 +1,5 @@
 
 import logging
-import json
 
 from os import path
 from subprocess import Popen
@@ -32,7 +31,7 @@ class QemDAQ():
         # these varables used to tell when an acquisiton is completed
         self.frame_start_acquisition = 0  # number of frames received at start of acq
         self.frame_end_acquisition = 0  # number of frames at end of acq (start + acq number)
-        
+
         logging.debug("ODIN DATA DIRECTORY: %s", self.odin_data_dir)
         self.process_list = {}
         self.file_writing = False
@@ -101,7 +100,9 @@ class QemDAQ():
             hdf_status = fp_status.get('hdf', {"frames_written": 0})
         self.frame_start_acquisition = hdf_status['frames_written']
         self.frame_end_acquisition = self.frame_start_acquisition + num_frames
-        logging.info("FRAME START ACQ: %d END ACQ: %d", self.frame_start_acquisition, self.frame_end_acquisition)
+        logging.info("FRAME START ACQ: %d END ACQ: %d",
+                     self.frame_start_acquisition,
+                     self.frame_end_acquisition)
         self.in_progress = True
         IOLoop.instance().add_callback(self.acquisition_check_loop)
         logging.debug("Starting File Writer")
@@ -116,7 +117,7 @@ class QemDAQ():
             IOLoop.instance().call_later(.5, self.acquisition_check_loop)
 
     def stop_acquisition(self):
-        # disable file writing so other processes can access the saved data 
+        # disable file writing so other processes can access the saved data
         # (such as the calibration plotting)
         self.in_progress = False
         self.set_file_writing(False)
@@ -224,14 +225,14 @@ class QemDAQ():
         logging.debug(config)
         request = ApiAdapterRequest(config, content_type="application/json")
         command = "config/config_file"
-        response = self.adapters[adapter].put(command, request)
+        _ = self.adapters[adapter].put(command, request)
 
     def run_odin_data(self, process_name):
         if process_name == "fr":
             try:
                 logging.debug("RUNNING FRAME RECEIVER")
                 log_config = path.join(self.config_dir, "fr_log4cxx.xml")
-                self.process_list["frame_receiver"] = Popen(["./bin/frameReceiver", "--debug=2", 
+                self.process_list["frame_receiver"] = Popen(["./bin/frameReceiver", "--debug=2",
                                                              "--logconfig={}".format(log_config)],
                                                             cwd=self.odin_data_dir)
             except OSError as e:

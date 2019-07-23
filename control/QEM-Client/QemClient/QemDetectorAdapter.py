@@ -8,15 +8,11 @@ Sophie Kirkham, Application Engineering Group, STFC. 2019
 Adam Neaves, Detector Systems Software Group, STFC. 2019
 """
 import logging
-import tornado
-import time
-from concurrent import futures
 import os
 
-from tornado.ioloop import IOLoop
 from odin.util import decode_request_body, convert_unicode_to_string
 
-from odin.adapters.adapter import ApiAdapter, ApiAdapterRequest, ApiAdapterResponse, request_types, response_types
+from odin.adapters.adapter import ApiAdapter, ApiAdapterResponse, request_types, response_types
 from odin.adapters.parameter_tree import ParameterTree, ParameterTreeError
 
 from odin.adapters.proxy import ProxyAdapter
@@ -24,8 +20,6 @@ from FileInterface.adapter import FileInterfaceAdapter
 from odin_data.live_view_adapter import LiveViewAdapter
 from odin_data.frame_processor_adapter import FrameProcessorAdapter
 from odin_data.frame_receiver_adapter import FrameReceiverAdapter
-
-from odin._version import get_versions
 
 from QemCalibrator import QemCalibrator
 from QemFem import QemFem
