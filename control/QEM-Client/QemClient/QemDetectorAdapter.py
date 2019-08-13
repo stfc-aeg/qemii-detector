@@ -10,6 +10,7 @@ Adam Neaves, Detector Systems Software Group, STFC. 2019
 import logging
 import os
 
+from tornado.ioloop import IOLoop
 from odin.util import decode_request_body, convert_unicode_to_string
 
 from odin.adapters.adapter import ApiAdapter, ApiAdapterResponse, request_types, response_types
@@ -258,14 +259,28 @@ class QemDetector():
             logging.warning("Cannot Start Acquistion: Already in progress")
             return
         self.daq.start_acquisition(self.acq_num)
-        for fem in self.fems:
-            fem.setup_camera()
-            fem.get_aligner_status()  # TODO: is this required?
-            locked = fem.get_idelay_lock_status()
-            if not locked:
-                fem.load_vectors_from_file()
-        self.fems[0].frame_gate_settings(self.acq_num - 1, self.acq_gap)
-        self.fems[0].frame_gate_trigger()
+        IOLoop.instance().add_callback(self.wait_acquisition_start)
+        # for fem in self.fems:
+        #     fem.setup_camera()
+        #     fem.get_aligner_status()  # TODO: is this required?
+        #     locked = fem.get_idelay_lock_status()
+        #     if not locked:
+        #         fem.load_vectors_from_file()
+        # self.fems[0].frame_gate_settings(self.acq_num - 1, self.acq_gap)
+        # self.fems[0].frame_gate_trigger()
+
+    def wait_acquisition_start(self):
+        if not self.daq.file_writing:
+            IOLoop.instance().call_later(0.1, self.wait_acquisition_start)
+        else:
+            for fem in self.fems:
+                fem.setup_camera()
+                fem.get_aligner_status()  # TODO: is this required?
+                locked = fem.get_idelay_lock_status()
+                if not locked:
+                    fem.load_vectors_from_file()
+            self.fems[0].frame_gate_settings(self.acq_num - 1, self.acq_gap)
+            self.fems[0].frame_gate_trigger()
 
 
 class QemDetectorDefaults():
