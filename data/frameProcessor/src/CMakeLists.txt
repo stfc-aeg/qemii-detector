@@ -7,5 +7,7 @@ include_directories(${FRAMEPROCESSOR_DIR}/include ${ODINDATA_INCLUDE_DIRS}
 
 # Add library for excalibur plugin
 add_library(QemiiProcessPlugin SHARED QemiiProcessPlugin.cpp)
+add_library(QemiiCorrectionPlugin SHARED QemiiCorrectionPlugin.cpp)
 
 install(TARGETS QemiiProcessPlugin LIBRARY DESTINATION lib)
+install(TARGETS QemiiCorrectionPlugin LIBRARY DESTINATION lib)
