@@ -24,6 +24,10 @@ namespace Qemii {
     static const std::string CONFIG_QEMI_BIT_DEPTH = "16-bit";
     static const int QEMI_BIT_DEPTH = 1;
 
+    static const double qem_correction_offset = 0;
+    static const double qem_coarse_scale = 1.0 / 64;  // dividing by 64 is the same as bitshifting right by 6 places (2^6 = 64)
+    static const double qem_fine_scale = 1;
+
     typedef struct
     {
         uint32_t frame_number;
