@@ -1,5 +1,5 @@
 /*
-x * QEMIIProcessPlugin.h
+ * QEMIIProcessPlugin.h
  *
  *  Created on: 6 Jun 2016
  *      Author: gnx91527
@@ -19,6 +19,7 @@ using namespace log4cxx::helpers;
 #include "FrameProcessorPlugin.h"
 #include "QemiiDefinitions.h"
 #include "ClassLoader.h"
+#include "DataBlockFrame.h"
 
 
 namespace FrameProcessor

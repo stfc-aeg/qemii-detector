@@ -154,7 +154,7 @@ namespace FrameProcessor
   {
 
     boost::shared_ptr<Frame> checked_frame = frame;
-    const Qemii::FrameHeader* frame_header_ptr = static_cast<const Qemii::FrameHeader*>(frame->get_data());
+    const Qemii::FrameHeader* frame_header_ptr = static_cast<const Qemii::FrameHeader*>(frame->get_data_ptr());
 
     LOG4CXX_INFO(logger_, "Processing lost packets for Frame :" << frame_header_ptr->frame_number);
     LOG4CXX_INFO(logger_, "Received: " << frame_header_ptr->total_packets_received
@@ -163,10 +163,11 @@ namespace FrameProcessor
 
     if(frame_header_ptr->total_packets_received < (Qemii::num_frame_packets * (int)frame_header_ptr->num_active_fems)){
 
-
       size_t num_bytes = frame->get_data_size();
-      void* image = (void*)malloc(num_bytes);
-      memcpy(image, frame->get_data(), num_bytes);
+      checked_frame = boost::shared_ptr<Frame>(new DataBlockFrame(frame->get_meta_data(), num_bytes));
+
+      void* image = frame->get_data_ptr();
+      memcpy(image, frame->get_data_ptr(), num_bytes);
 
       int num_packets_lost = (Qemii::num_frame_packets * (int)frame_header_ptr->num_active_fems) - frame_header_ptr->total_packets_received;
       
@@ -197,9 +198,9 @@ namespace FrameProcessor
        
       }
 
-      checked_frame = boost::shared_ptr<Frame>(new Frame("Checked"));
-      checked_frame->copy_data(image, num_bytes);
-      free(image);
+      
+      // checked_frame->copy_data(image, num_bytes);
+      // free(image);
 
     }
 
@@ -211,12 +212,12 @@ namespace FrameProcessor
     Process a QEM frame and release ready to be written to hdf5 as an image.
     @param frame: shread pointer to a Frame object holding the raw frame data.
 
-    This method processes the incoming frame for lost packets and gets status information
-    about the frame from the frame header. It calculates the image size and reshapes the frame data
-    to fit the image width and height configured in the processor. 
-    The frame is then copied and released to be processed by the rest of the processing chain.
+    This method processes the incoming frame for lost packets and gets status
+    information about the frame from the frame header. It calculates the image
+    size and reshapes the frame data to fit the image width and height configured
+    in the processor. The frame is then copied and released to be processed by
+    the rest of the processing chain.
   */
-
   void QemiiProcessPlugin::process_frame(boost::shared_ptr<Frame> frame)
   {
     LOG4CXX_INFO(logger_, "Reordering frame.");
@@ -224,8 +225,9 @@ namespace FrameProcessor
 
     frame = this->process_lost_packets(frame);
 
-    const Qemii::FrameHeader* frame_header_ptr = static_cast<const Qemii::FrameHeader*>(frame->get_data());
+    const Qemii::FrameHeader* frame_header_ptr = static_cast<const Qemii::FrameHeader*>(frame->get_data_ptr());
 
+    LOG4CXX_DEBUG(logger_, "Frame Header Size: " << sizeof(Qemii::FrameHeader));
     LOG4CXX_INFO(logger_, "Processing Image for Frame Number: " << frame_header_ptr->frame_number);
     LOG4CXX_INFO(logger_, "Frame State: " << frame_header_ptr->frame_state);
     LOG4CXX_INFO(logger_, "Total Packets Received: " << frame_header_ptr->total_packets_received);
@@ -237,9 +239,9 @@ namespace FrameProcessor
     // allocate memory for that image size
 
     size_t image_size = reordered_image_size(Qemii::QEMI_BIT_DEPTH);
-    std::cout << image_size << std::endl;
+     LOG4CXX_DEBUG(logger_, "Reordered Image Size: " << image_size);
 
-    const void* frame_data = static_cast<const void*>(static_cast<const char*>(frame->get_data() + sizeof(Qemii::FrameHeader)));
+    const void* frame_data = static_cast<const void*>(static_cast<const char*>(frame->get_data_ptr() + sizeof(Qemii::FrameHeader)));
 
     //only one fem.. so this is all of the data.
 
@@ -247,15 +249,23 @@ namespace FrameProcessor
     dimensions_t dimensions(2);
     dimensions[0] = image_height_;
     dimensions[1] = image_width_;
+    FrameMetaData old_meta_data = frame->get_meta_data();
+    FrameMetaData new_meta_data = FrameMetaData(old_meta_data);
+    
+    
 
-    boost::shared_ptr<Frame> the_frame = boost::shared_ptr<Frame>(new Frame("data"));
 
-    the_frame->set_frame_number(frame_header_ptr->frame_number);
-    the_frame->set_dimensions(dimensions);
-    the_frame->set_data_type(1);
-    the_frame->copy_data(frame_data, image_size);
-  
-
+    new_meta_data.set_frame_number(frame_header_ptr->frame_number);
+    new_meta_data.set_dimensions(dimensions);
+    new_meta_data.set_data_type(raw_16bit);
+    LOG4CXX_DEBUG(logger_, "New Meta Data acquisition_id: " << new_meta_data.get_acquisition_ID());
+    LOG4CXX_DEBUG(logger_, "Old Meta Data acquisition_id: " << old_meta_data.get_acquisition_ID());
+    LOG4CXX_DEBUG(logger_, "New Meta Data dataset: " << new_meta_data.get_dataset_name());
+    LOG4CXX_DEBUG(logger_, "Old Meta Data dataset: " << old_meta_data.get_dataset_name());
+    new_meta_data.set_acquisition_ID("");
+    boost::shared_ptr<Frame> the_frame = boost::shared_ptr<Frame>(new DataBlockFrame(new_meta_data, image_size));
+    void* data_ptr = the_frame->get_data_ptr();
+    memcpy(data_ptr, frame_data, image_size);
     LOG4CXX_TRACE(logger_, "Pushing data frame.");
     this->push(the_frame);
     frame_data = NULL;
