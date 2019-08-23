@@ -11,3 +11,5 @@ matrix:
       script:
         - tox
 
+notifications:
+  slack: stfc-aeg:5FCcBaGivXbodtCP7getHDah
