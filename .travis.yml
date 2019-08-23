@@ -1,6 +1,7 @@
 matrix:
   include:
     - language: python
+      python: 2.7
       before_script:
         - cd control
       install:
@@ -10,6 +11,3 @@ matrix:
       script:
         - tox
 
-python:
-  - 2.7
-  - 3.5
