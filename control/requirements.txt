@@ -6,4 +6,4 @@ cx_Freeze==5.1.1
 gpio==0.3.0
 odin==1.4.0
 smbus==1.1.post2
-tornado==6.0.3
+tornado>=4.3,<5.0
