@@ -16,6 +16,6 @@ setup(name='FileInterface',
       author_email='adam.neaves@stfc.ac.uk',
       packages=find_packages(),
       install_requires=required,
-      dependency_links=['https://github.com/odin-detector/odin-control/zipball/0.9.0#egg=odin'],
+      dependency_links=['https://github.com/odin-detector/odin-control/zipball/master#egg=odin'],
       zip_safe=False,
 )
