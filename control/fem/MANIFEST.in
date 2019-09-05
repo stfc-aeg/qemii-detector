@@ -1,0 +1,2 @@
+include versioneer.py
+include src/qemii_fem/_version.py
