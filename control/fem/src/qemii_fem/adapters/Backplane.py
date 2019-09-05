@@ -1,15 +1,15 @@
 import logging
 
-from qemii.fem.devices.i2c_device import I2CDevice, I2CException
-from i2c_container import I2CContainer
+from ..devices.i2c_device import I2CDevice, I2CException
+from ..devices.i2c_container import I2CContainer
 
-from tca9548 import TCA9548
-from ad5272 import AD5272
-from mcp23008 import MCP23008
-from tpl0102 import TPL0102
-from si570 import SI570
-from ad7998 import ad7998
-from ad5694 import ad5694
+from ..devices.tca9548 import TCA9548
+from ..devices.ad5272 import AD5272
+from ..devices.mcp23008 import MCP23008
+from ..devices.tpl0102 import TPL0102
+from ..devices.si570 import SI570
+from ..devices.ad7998 import ad7998
+from ..devices.ad5694 import ad5694
 import math
 
 from odin.adapters.parameter_tree import ParameterTree, ParameterTreeError
