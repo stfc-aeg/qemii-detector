@@ -1,1 +1,1 @@
-"""qemii.fem.devices package __init__.py."""
+"""qemii_fem.devices package __init__.py."""
