@@ -16,7 +16,7 @@ from odin.adapters.adapter import ApiAdapter, ApiAdapterResponse, request_types,
 from odin.adapters.parameter_tree import ParameterTree, ParameterTreeError
 
 from odin.adapters.proxy import ProxyAdapter
-from FileInterface.adapter import FileInterfaceAdapter
+from FileInterfaceAdapter import FileInterfaceAdapter
 from odin_data.live_view_adapter import LiveViewAdapter
 from odin_data.frame_processor_adapter import FrameProcessorAdapter
 from odin_data.frame_receiver_adapter import FrameReceiverAdapter

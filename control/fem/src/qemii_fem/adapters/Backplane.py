@@ -1,6 +1,6 @@
 import logging
 
-from i2c_device import I2CDevice, I2CException
+from qemii.fem.devices.i2c_device import I2CDevice, I2CException
 from i2c_container import I2CContainer
 
 from tca9548 import TCA9548
