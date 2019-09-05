@@ -1,3 +1,0 @@
-include versioneer.py
-include QemFem/_version.py
-include QemFem/BackplaneAdapter.py
