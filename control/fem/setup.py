@@ -7,7 +7,7 @@ import versioneer
 with open('requirements.txt') as f:
     required = f.read().splitlines()
 
-setup(name='qemii_detector',
+setup(name='qemii_fem',
       version=versioneer.get_version(),
       cmdclass=versioneer.get_cmdclass(),
       description='Odin Fem Adapters for QEMII',
