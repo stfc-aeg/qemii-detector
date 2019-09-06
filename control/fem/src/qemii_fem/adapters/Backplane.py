@@ -159,6 +159,7 @@ class Backplane():
 
                 #ABOVE: need to add set methods in the parameter tree
                 "enable":(lambda: self.update, self.set_update, {"description": "Controls I2C activity on the backplane"}),
+                "backplane_power":(lambda: self.backplane_power, self.set_backplane_power),
                 "clock(MHz)":(lambda : self.clock_frequency, self.set_clock_frequency,{"description": "Controls the main clock Reference", "units": "MHz"}), 
                 "dacextref":{   "current":(self.get_dacextref, self.set_dacextref_current, {"description": "Controls the DAC external current reference", "units": "uA"}),
                                 "register":(lambda: self.adjust_resistor_raw[2], self.set_dacextref_register_value, {"description":"register that controls the external reference"})
