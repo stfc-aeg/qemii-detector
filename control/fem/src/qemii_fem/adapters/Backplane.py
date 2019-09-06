@@ -82,6 +82,7 @@ class Backplane():
             self.si570.set_frequency(17.5)
             self.clock_frequency = 17.5 # local variable used to read pre-set clock frequency rather than reading i2c each time
 
+            self.backplane_power = 1
         #exception error handling needs further improvement
         except ValueError:
             print('Non-numeric input detected.')
@@ -182,6 +183,9 @@ class Backplane():
 
         except ImportError:
             print('Unable to locate the module.')
+    
+    def set_backplane_power(self, value):
+        self.backplane_power = value
 
     def i2c_init(self):
         """Initialises the I2C devices and some default values asociated with them"""
@@ -376,6 +380,11 @@ class Backplane():
         self.calc_fine_common()
         self.ad5694.set_from_voltage(4, value)
 
+    def set_gpios(self):
+        if self.backplane_power == 1:
+            self.mcp23008[1].output(0, MCP23008.HIGH)
+        else:
+            self.mcp23008[1].output(0, MCP23008.LOW)
     
     
     def poll_all_sensors(self):
@@ -384,6 +393,7 @@ class Backplane():
             self.update_voltages()
             self.update_currents()
             self.power_good = self.mcp23008[0].input_pins([0,1,2,3,4,5,6,7,8])
+            self.set_gpios()
 
 
     def update_voltages(self):
