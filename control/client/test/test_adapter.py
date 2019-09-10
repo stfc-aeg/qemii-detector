@@ -8,6 +8,7 @@ else:                         # pragma: no cover
     from mock import Mock, MagicMock
 
 sys.modules['socket'] = MagicMock()
+sys.modules['qemii_detector.QemFem'] = Mock()
 
 from qemii_detector.QemDetectorAdapter import QemDetectorAdapter
 
@@ -31,6 +32,7 @@ class DetectorAdapterTestFixture(object):
         self.path = "acquisition/num_frames"
         self.request = Mock()
         self.request.headers = {'Accept': 'application/json', 'Content-Type': 'application/json'}
+
 
 @pytest.fixture(scope="class")
 def test_detector_adapter():
