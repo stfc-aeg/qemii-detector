@@ -7,8 +7,10 @@ if sys.version_info[0] == 3:  # pragma: no cover
 else:                         # pragma: no cover
     from mock import Mock, MagicMock
 
+# mocking some modules to avoid issues from them trying to access
+# files or IP addresses while testing
 sys.modules['socket'] = MagicMock()
-sys.modules['qemii_detector.QemFem'] = Mock()
+sys.modules['qemii_detector.QemFem'] = Mock() 
 
 from qemii_detector.QemDetectorAdapter import QemDetectorAdapter
 

@@ -11,4 +11,4 @@ script:
 - tox -c client/
 - tox -c fem/
 after_success:
-- COVERALLS_PARALLEL=true coveralls
+- coveralls
