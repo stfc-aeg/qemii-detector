@@ -4,8 +4,13 @@
 from setuptools import setup, find_packages
 import versioneer
 
-with open('requirements.txt') as f:
-    required = f.read().splitlines()
+required = [
+    'tornado>4.3',
+    'pyzmq>=17.0',
+    'future',
+    'psutil>5.0',
+    'odin'
+]
 
 setup(name='qemii_fem',
       version=versioneer.get_version(),
@@ -17,5 +22,6 @@ setup(name='qemii_fem',
       packages=find_packages('src'),
       package_dir={'': 'src'},
       install_requires=required,
+      dependency_links=['https://github.com/odin-detector/odin-control/zipball/master#egg=odin'],
       zip_safe=False,
       )

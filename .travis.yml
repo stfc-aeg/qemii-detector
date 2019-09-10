@@ -1,0 +1,14 @@
+dist: xenial
+language: python
+sudo: false
+python:
+- 2.7
+before_install: cd control
+install:
+- pip install tox-travis
+- pip install coveralls
+script:
+- tox -c client/
+- tox -c fem/
+after_success:
+- COVERALLS_PARALLEL=true coveralls

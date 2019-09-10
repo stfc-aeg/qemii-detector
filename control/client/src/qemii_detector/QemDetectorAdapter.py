@@ -17,7 +17,6 @@ from odin.adapters.parameter_tree import ParameterTree, ParameterTreeError
 
 from odin.adapters.proxy import ProxyAdapter
 from FileInterfaceAdapter import FileInterfaceAdapter
-from odin_data.live_view_adapter import LiveViewAdapter
 from odin_data.frame_processor_adapter import FrameProcessorAdapter
 from odin_data.frame_receiver_adapter import FrameReceiverAdapter
 
@@ -238,9 +237,6 @@ class QemDetector():
             elif isinstance(adapter, FrameReceiverAdapter):
                 logging.debug("%s is FR Adapter", name)
                 self.adapters["fr"] = adapter
-            elif isinstance(adapter, LiveViewAdapter):
-                logging.debug("%s is Live View Adapter", name)
-                self.adapters["liveview"] = adapter
             elif isinstance(adapter, FileInterfaceAdapter):
                 logging.debug("%s is File Interface Adapter", name)
                 self.adapters["file_interface"] = adapter

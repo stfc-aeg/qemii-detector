@@ -8,8 +8,7 @@ Sophie Kirkham, Application Engineering Group, STFC. 2019
 import logging
 import tornado
 import time
-from concurrent import futures
-import os 
+import os
 import gpio
 
 from tornado.ioloop import IOLoop
