@@ -9,10 +9,16 @@ required = [
     'pyzmq>=17.0',
     'future',
     'psutil>5.0',
-    'odin'
+    'odin',
+    'odin_devices'
 ]
 
-setup(name='qemii_detector',
+dependency_links = [
+    'https://github.com/odin-detector/odin-control/zipball/master#egg=odin',
+    'https://github.com/stfc-aeg/odin-devices/zipball/device-copy#egg=odin-devices'  # replace when merged to master
+]
+
+setup(name='qemii',
       version=versioneer.get_version(),
       cmdclass=versioneer.get_cmdclass(),
       description='Odin Detector Adapters for QEMII',
@@ -22,6 +28,6 @@ setup(name='qemii_detector',
       packages=find_packages('src'),
       package_dir={'': 'src'},
       install_requires=required,
-      dependency_links=['https://github.com/odin-detector/odin-control/zipball/master#egg=odin'],
+      dependency_links=dependency_links,
       zip_safe=False
       )

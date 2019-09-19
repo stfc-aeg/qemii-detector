@@ -13,7 +13,7 @@ else:                         # pragma: no cover
 import pytest
 
 sys.modules['gpio'] = Mock()
-from qemii_fem.adapters.FemAdapter import FemAdapter
+from qemii.fem.FemAdapter import FemAdapter
 
 
 class FemAdapterTestFixture(object):

@@ -10,9 +10,9 @@ else:                         # pragma: no cover
 # mocking some modules to avoid issues from them trying to access
 # files or IP addresses while testing
 sys.modules['socket'] = MagicMock()
-sys.modules['qemii_detector.QemFem'] = Mock() 
+sys.modules['qemii.detector.QemFem'] = Mock() 
 
-from qemii_detector.QemDetectorAdapter import QemDetectorAdapter
+from qemii.detector.QemDetectorAdapter import QemDetectorAdapter
 
 
 class DetectorAdapterTestFixture(object):

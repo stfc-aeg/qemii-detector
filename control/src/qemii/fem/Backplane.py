@@ -1,15 +1,15 @@
 import logging
 
-from ..devices.i2c_device import I2CDevice, I2CException
-from ..devices.i2c_container import I2CContainer
+from odin_devices.i2c_device import I2CDevice, I2CException
+from odin_devices.i2c_container import I2CContainer
 
-from ..devices.tca9548 import TCA9548
-from ..devices.ad5272 import AD5272
-from ..devices.mcp23008 import MCP23008
-from ..devices.tpl0102 import TPL0102
-from ..devices.si570 import SI570
-from ..devices.ad7998 import ad7998
-from ..devices.ad5694 import ad5694
+from odin_devices.tca9548 import TCA9548
+from odin_devices.ad5272 import AD5272
+from odin_devices.mcp23008 import MCP23008
+from odin_devices.tpl0102 import TPL0102
+from odin_devices.si570 import SI570
+from odin_devices.ad7998 import AD7998
+from odin_devices.ad5694 import AD5694
 import math
 
 from odin.adapters.parameter_tree import ParameterTree, ParameterTreeError
@@ -67,7 +67,7 @@ class Backplane():
 
             """BELOW: I2C devices instances"""
             self.tca = TCA9548(0x70, busnum=1) #this is the multiplexer, the first device on the bus on the backplane
-            self.ad5694 = self.tca.attach_device(5, ad5694, 0x0E, busnum=1) #Digital to Analogue Converter 0x2E = fine adjustment (AUXSAMPLE_FILE), 0x2F coarse adjustment (AUXSAMPLE_COARSE)
+            self.ad5694 = self.tca.attach_device(5, AD5694, 0x0E, busnum=1) #Digital to Analogue Converter 0x2E = fine adjustment (AUXSAMPLE_FILE), 0x2F coarse adjustment (AUXSAMPLE_COARSE)
             self.si570 = self.tca.attach_device(1, SI570, 0x5d, 'SI570', busnum=1) #this creates a link to the clock
             self.tpl0102 = [] #this creates a list of tpl0102 devices (potentiometers)
             self.ad7998 = []#this creates a list of ad7998 devices (Analog to Digital Converters)
