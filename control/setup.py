@@ -15,7 +15,7 @@ required = [
 
 dependency_links = [
     'https://github.com/odin-detector/odin-control/zipball/master#egg=odin',
-    'https://github.com/stfc-aeg/odin-devices/zipball/device-copy#egg=odin-devices'  # replace when merged to master
+    'https://github.com/stfc-aeg/odin-devices/zipball/device-copy#egg=odin_devices'  # replace when merged to master
 ]
 
 setup(name='qemii',
