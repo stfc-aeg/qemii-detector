@@ -13,6 +13,8 @@ else:                         # pragma: no cover
 import pytest
 
 sys.modules['gpio'] = Mock()
+sys.modules['odin_devices'] = Mock()
+
 from qemii.fem.FemAdapter import FemAdapter
 
 
