@@ -9,4 +9,4 @@ install:
 - pip install coveralls
 script: tox
 after_success:
-- coveralls
+- COVERALLS_PARALLEL=true coveralls
