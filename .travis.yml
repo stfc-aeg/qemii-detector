@@ -11,3 +11,5 @@ install:
 script: tox
 after_success:
 - COVERALLS_PARALLEL=true coveralls
+notifications:
+  webhooks: https://coveralls.io/webhook
