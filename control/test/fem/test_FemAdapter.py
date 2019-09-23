@@ -1,16 +1,15 @@
 """
-Test cases for the Fem Adapter class in qemii_fem.
+Test cases for the Fem Adapter class in qemii.fem.
 Adam Neaves, STFC Detector Systems Software Group
 """
 
 import sys
+import pytest
 
 if sys.version_info[0] == 3:  # pragma: no cover
     from unittest.mock import Mock, call
 else:                         # pragma: no cover
     from mock import Mock, call
-
-import pytest
 
 sys.modules['gpio'] = Mock()
 sys.modules['odin_devices'] = Mock()

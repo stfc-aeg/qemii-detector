@@ -16,13 +16,13 @@ from odin.adapters.adapter import ApiAdapter, ApiAdapterResponse, request_types,
 from odin.adapters.parameter_tree import ParameterTree, ParameterTreeError
 
 from odin.adapters.proxy import ProxyAdapter
-from FileInterfaceAdapter import FileInterfaceAdapter
+from qemii.detector.FileInterfaceAdapter import FileInterfaceAdapter
 from odin_data.frame_processor_adapter import FrameProcessorAdapter
 from odin_data.frame_receiver_adapter import FrameReceiverAdapter
 
-from QemCalibrator import QemCalibrator
-from QemFem import QemFem
-from QemDAQ import QemDAQ
+from qemii.detector.QemCalibrator import QemCalibrator
+from qemii.detector.QemFem import QemFem
+from qemii.detector.QemDAQ import QemDAQ
 
 
 class QemDetectorAdapter(ApiAdapter):

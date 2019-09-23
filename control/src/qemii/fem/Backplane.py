@@ -1,7 +1,5 @@
 import logging
 
-from odin_devices.i2c_device import I2CDevice, I2CException
-from odin_devices.i2c_container import I2CContainer
 
 from odin_devices.tca9548 import TCA9548
 from odin_devices.ad5272 import AD5272
@@ -193,7 +191,7 @@ class Backplane():
         #init below
         for i in range(4):
             self.tpl0102.append(self.tca.attach_device(0, TPL0102, 0x50 + i, busnum=1)) 
-            self.ad7998.append(self.tca.attach_device(2, ad7998, 0x21 + i, busnum=1))
+            self.ad7998.append(self.tca.attach_device(2, AD7998, 0x21 + i, busnum=1))
             self.tpl0102[i].set_non_volatile(False)  
 
 

@@ -3,14 +3,16 @@ import sys
 import pytest
 
 if sys.version_info[0] == 3:  # pragma: no cover
-    from unittest.mock import Mock, MagicMock
+    from unittest.mock import Mock, MagicMock, patch
 else:                         # pragma: no cover
-    from mock import Mock, MagicMock
+    from mock import Mock, MagicMock, patch
 
 # mocking some modules to avoid issues from them trying to access
 # files or IP addresses while testing
 sys.modules['socket'] = MagicMock()
-sys.modules['qemii.detector.QemFem'] = Mock() 
+sys.modules['qemii.detector.QemFem'] = Mock()
+sys.modules['odin_data.frame_processor_adapter'] = Mock()
+sys.modules['odin_data.frame_receiver_adapter'] = Mock()
 
 from qemii.detector.QemDetectorAdapter import QemDetectorAdapter
 
@@ -38,6 +40,7 @@ class DetectorAdapterTestFixture(object):
 
 @pytest.fixture(scope="class")
 def test_detector_adapter():
+
     test_detector_adapter = DetectorAdapterTestFixture()
     yield test_detector_adapter
 

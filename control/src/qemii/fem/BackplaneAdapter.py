@@ -21,7 +21,7 @@ from odin.adapters.adapter import ApiAdapter, ApiAdapterResponse, request_types,
 from odin.adapters.parameter_tree import ParameterTree, ParameterTreeError
 from odin._version import get_versions
 
-from Backplane import Backplane
+from qemii.fem.Backplane import Backplane
 
 
 class BackplaneAdapter(ApiAdapter):
