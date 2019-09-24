@@ -10,9 +10,9 @@ else:                         # pragma: no cover
 # mocking some modules to avoid issues from them trying to access
 # files or IP addresses while testing
 sys.modules['socket'] = MagicMock()
-sys.modules['qemii.detector.QemFem'] = Mock()
-sys.modules['odin_data.frame_processor_adapter'] = Mock()
-sys.modules['odin_data.frame_receiver_adapter'] = Mock()
+
+# sys.modules['odin_data.frame_processor_adapter'] = Mock()
+# sys.modules['odin_data.frame_receiver_adapter'] = Mock()
 
 from qemii.detector.QemDetectorAdapter import QemDetectorAdapter
 
@@ -32,10 +32,13 @@ class DetectorAdapterTestFixture(object):
                 camera_data_ip = 127.0.0.1
                 """
         }
-        self.adapter = QemDetectorAdapter(**self.options)
-        self.path = "acquisition/num_frames"
-        self.request = Mock()
-        self.request.headers = {'Accept': 'application/json', 'Content-Type': 'application/json'}
+        with patch('qemii.detector.QemDetectorAdapter.QemFem'), \
+             patch('qemii.detector.QemDetectorAdapter.QemDAQ'):
+            self.adapter = QemDetectorAdapter(**self.options)
+            print("Fem Class Type: {}".format(type(self.adapter.qem_detector.fems[0])))
+            self.path = "acquisition/num_frames"
+            self.request = Mock()
+            self.request.headers = {'Accept': 'application/json', 'Content-Type': 'application/json'}
 
 
 @pytest.fixture(scope="class")

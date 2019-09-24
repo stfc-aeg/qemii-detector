@@ -11,10 +11,11 @@ from concurrent import futures
 from tornado.ioloop import IOLoop
 from tornado.concurrent import run_on_executor
 from tornado.escape import json_decode
-from RdmaUDP import RdmaUDP
 from socket import error as socket_error
 from odin.adapters.parameter_tree import ParameterTree, ParameterTreeError
-from VectorFile import VectorFile
+
+from qemii.detector.VectorFile import VectorFile
+from qemii.detector.RdmaUDP import RdmaUDP
 
 
 class QemFemError(Exception):

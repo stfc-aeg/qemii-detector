@@ -11,41 +11,34 @@ import logging
 import os.path
 from functools import partial
 
-# import numpy as np
-# import matplotlib.pyplot as plt
-
-from odin.adapters.adapter import ApiAdapter, ApiAdapterRequest, ApiAdapterResponse, request_types, response_types
-from odin.adapters.parameter_tree import ParameterTree, ParameterTreeError
-from odin.util import decode_request_body, convert_unicode_to_string
-from tornado.ioloop import IOLoop
-
-DACDIN = 43
-BIAS_DEPTH = 6
-
-# bias names, in the order that they appear in the vector file.
-# DEFAULTS IN COMMENTS
-BIAS_NAMES = ["iBiasCol",        # 001100 - 0x0C - 12
-              "iBiasSF0",        # 000101 - 0x05 - 05
-              "vBiasPGA",        # 000000 - 0x00 - 00
-              "iBiasPGA",        # 001100 - 0x0C - 12
-              "iBiasSF1",        # 001010 - 0x0A - 10
-              "iBiasOutSF",      # 011001 - 0x19 - 25
-              "iBiasLoad",       # 010100 - 0x14 - 20
-              "iBiasADCbuffer",  # 001100 - 0x0C - 12
-              "iBiasCalC",       # 001100 - 0x0C - 12
-              "iBiasRef",        # 001010 - 0x0A - 10
-              "iCbiasP",         # 011010 - 0x1A - 26
-              "vBiasCasc",       # 100000 - 0x20 - 32
-              "iFbiasN",         # 011000 - 0x18 - 24
-              "iBiasCalF",       # 010010 - 0x12 - 18
-              "iBiasADC1",       # 010100 - 0x14 - 20
-              "iBiasADC2",       # 010100 - 0x14 - 20
-              "iBiasAmpLVDS",    # 010000 - 0x10 - 16
-              "iBiasLVDS",       # 101101 - 0x2D - 45
-              "iBiasPLL"]        # 010100 - 0x14 - 20
+from odin.adapters.parameter_tree import ParameterTree
 
 
 class VectorFile():
+
+    BIAS_DEPTH = 6
+
+    # bias names, in the order that they appear in the vector file.
+    # DEFAULTS IN COMMENTS
+    BIAS_NAMES = ["iBiasCol",        # 001100 - 0x0C - 12
+                  "iBiasSF0",        # 000101 - 0x05 - 05
+                  "vBiasPGA",        # 000000 - 0x00 - 00
+                  "iBiasPGA",        # 001100 - 0x0C - 12
+                  "iBiasSF1",        # 001010 - 0x0A - 10
+                  "iBiasOutSF",      # 011001 - 0x19 - 25
+                  "iBiasLoad",       # 010100 - 0x14 - 20
+                  "iBiasADCbuffer",  # 001100 - 0x0C - 12
+                  "iBiasCalC",       # 001100 - 0x0C - 12
+                  "iBiasRef",        # 001010 - 0x0A - 10
+                  "iCbiasP",         # 011010 - 0x1A - 26
+                  "vBiasCasc",       # 100000 - 0x20 - 32
+                  "iFbiasN",         # 011000 - 0x18 - 24
+                  "iBiasCalF",       # 010010 - 0x12 - 18
+                  "iBiasADC1",       # 010100 - 0x14 - 20
+                  "iBiasADC2",       # 010100 - 0x14 - 20
+                  "iBiasAmpLVDS",    # 010000 - 0x10 - 16
+                  "iBiasLVDS",       # 101101 - 0x2D - 45
+                  "iBiasPLL"]        # 010100 - 0x14 - 20
 
     def __init__(self, file_name, file_dir):
         self.file_dir = file_dir
@@ -63,6 +56,8 @@ class VectorFile():
         self.clock_step = 0
 
         self.get_vector_information()
+        self.extract_clock_references()
+        self.convert_raw_dac_data()
 
         self.bias_tree = ParameterTree(
             # dict comprehension, like a one-line for loop
@@ -72,10 +67,10 @@ class VectorFile():
                 bias_name: (partial(self.get_bias_val, bias_name),
                             partial(self.set_bias_val, bias_name),
                             # metadata ensures the bias val can't go over its 6 bit max
-                            {"min": 0, "max": (2**BIAS_DEPTH) - 1})
+                            {"min": 0, "max": (2**self.BIAS_DEPTH) - 1})
                 for bias_name in self.bias.keys()
             })
-    
+
         self.param_tree = ParameterTree({
             "bias": self.bias_tree,
             "file_name": (lambda: self.file_name, self.set_file_name),
@@ -113,7 +108,7 @@ class VectorFile():
 
         logging.info("Vector Data Shape: (%d,%d)", len(self.vector_data), len(self.vector_data[0]))
 
-        self.extract_clock_references()
+        # self.extract_clock_references()
 
     def extract_clock_references(self):
         """Extract the -ve clock positions and list them.
@@ -131,21 +126,23 @@ class VectorFile():
             if latch != clk_in and latch == 1:
                 # state has changed from 1 to 0
                 self.dac_clock_refs.append(i)
-                self.dac_data_vector.append(row[DACDIN])
+                self.dac_data_vector.append(row[self.dac_dat_in])
             latch = clk_in
         self.clock_step = self.dac_clock_refs[1] - self.dac_clock_refs[0]
-        self.convert_raw_dac_data()
+        # self.convert_raw_dac_data()
 
     def convert_raw_dac_data(self):
         """Convert the binary data from the vector files into a dictionary of actual bias values
         and keys
         """
 
-        for i, dac_data_name in enumerate(BIAS_NAMES):
+        for i, dac_data_name in enumerate(self.BIAS_NAMES):
+            print(dac_data_name)
             # bias values are 6 bit. each value in dac_data_vector is one bit
-            data_start = i * BIAS_DEPTH
-            data_end = (i * BIAS_DEPTH) + BIAS_DEPTH
+            data_start = i * self.BIAS_DEPTH
+            data_end = (i * self.BIAS_DEPTH) + self.BIAS_DEPTH
             data = self.dac_data_vector[data_start: data_end]
+            print(data)
             # using join() + list comprehension
             # converting binary list to integer
             self.bias[dac_data_name] = int("".join(str(x) for x in data), 2)
@@ -157,13 +154,13 @@ class VectorFile():
         """
 
         # convert the bias values from the dict into binary values in the dac_data_vector list
-        for i, bias_name in enumerate(BIAS_NAMES):
-            bias = '{:0{depth}b}'.format(self.bias[bias_name], depth=BIAS_DEPTH)
+        for i, bias_name in enumerate(self.BIAS_NAMES):
+            bias = '{:0{depth}b}'.format(self.bias[bias_name], depth=self.BIAS_DEPTH)
             logging.debug("%-16s: %s", bias_name, bias)
-            first_start = i * BIAS_DEPTH
-            second_start = (i + 19) * BIAS_DEPTH
-            self.dac_data_vector[first_start: first_start + BIAS_DEPTH] = list(bias)
-            self.dac_data_vector[second_start: second_start + BIAS_DEPTH] = list(bias)
+            first_start = i * self.BIAS_DEPTH
+            second_start = (i + 19) * self.BIAS_DEPTH
+            self.dac_data_vector[first_start: first_start + self.BIAS_DEPTH] = list(bias)
+            self.dac_data_vector[second_start: second_start + self.BIAS_DEPTH] = list(bias)
 
         for i, line_num in enumerate(self.dac_clock_refs):  # for each clock edge
             # get slice of vector data, going from half the distance between clock edges above
@@ -214,12 +211,12 @@ class VectorFile():
         self.bias[bias_name] = val
 
         # get position in list, as its in the same order in the vector_data
-        bias_pos = BIAS_NAMES.index(bias_name)
-        bin_bias = '{:0{depth}b}'.format(self.bias[bias_name], depth=BIAS_DEPTH)  # convert to binary
-        first_start = bias_pos * BIAS_DEPTH
-        second_start = (bias_pos + 19) * BIAS_DEPTH
-        self.dac_data_vector[first_start: first_start + BIAS_DEPTH] = list(bin_bias)
-        self.dac_data_vector[second_start: second_start + BIAS_DEPTH] = list(bin_bias)
+        bias_pos = self.BIAS_NAMES.index(bias_name)
+        bin_bias = '{:0{depth}b}'.format(self.bias[bias_name], depth=self.BIAS_DEPTH)  # convert to binary
+        first_start = bias_pos * self.BIAS_DEPTH
+        second_start = (bias_pos + 19) * self.BIAS_DEPTH
+        self.dac_data_vector[first_start: first_start + self.BIAS_DEPTH] = list(bin_bias)
+        self.dac_data_vector[second_start: second_start + self.BIAS_DEPTH] = list(bin_bias)
 
         # write all the biases. We only really need to write the one that changed but its easier
         # to write them all.

@@ -42,6 +42,6 @@ def test_backplane():
 
 class TestBackplane():
 
-    def test_fake(self, test_backplane):
+    def test_init(self, test_backplane):
 
-        assert True
+        assert test_backplane.backplane.backplane_power == 1
