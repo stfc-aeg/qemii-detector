@@ -11,8 +11,8 @@ else:                         # pragma: no cover
 # files or IP addresses while testing
 sys.modules['socket'] = MagicMock()
 
-# sys.modules['odin_data.frame_processor_adapter'] = Mock()
-# sys.modules['odin_data.frame_receiver_adapter'] = Mock()
+sys.modules['odin_data.frame_processor_adapter'] = Mock()
+sys.modules['odin_data.frame_receiver_adapter'] = Mock()
 
 from qemii.detector.QemDetectorAdapter import QemDetectorAdapter
 
