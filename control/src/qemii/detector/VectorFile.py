@@ -145,25 +145,22 @@ class VectorFile():
             # converting binary list to integer
             self.bias[dac_data_name] = int("".join(str(x) for x in data), 2)
 
-    def convert_bias_to_raw(self):
+    def convert_bias_to_raw(self, bias_name):
         """Convert the data in the bias dictionary into the binary representation required
         in the vector file. Modify the dac_data_vector list to represent this changed data.
         Modify the vector_data list of lists with this new data
         """
-
+        i = self.BIAS_NAMES.index(bias_name)
         # convert the bias values from the dict into binary values in the dac_data_vector list
-        for i, bias_name in enumerate(self.BIAS_NAMES):
-            bias = '{:0{depth}b}'.format(self.bias[bias_name], depth=self.BIAS_DEPTH)
-            logging.debug("%-16s: %s", bias_name, bias)
-            first_start = i * self.BIAS_DEPTH
-            second_start = (i + len(self.BIAS_NAMES)) * self.BIAS_DEPTH
-            self.dac_data_vector[first_start: first_start + self.BIAS_DEPTH] = list(bias)
-            self.dac_data_vector[second_start: second_start + self.BIAS_DEPTH] = list(bias)
+        # for i, bias_name in enumerate(self.BIAS_NAMES):
+        bias = '{:0{depth}b}'.format(self.bias[bias_name], depth=self.BIAS_DEPTH)
+        logging.debug("%-16s: %s", bias_name, bias)
+        first_start = i * self.BIAS_DEPTH
+        second_start = (i + len(self.BIAS_NAMES)) * self.BIAS_DEPTH
+        self.dac_data_vector[first_start: first_start + self.BIAS_DEPTH] = list(bias)
+        self.dac_data_vector[second_start: second_start + self.BIAS_DEPTH] = list(bias)
 
-        for i, line_num in enumerate(self.dac_clock_refs):  # for each clock edge
-            # get slice of vector data, going from half the distance between clock edges above
-            for line in self.vector_data[line_num - (self.clock_step / 2): line_num + (self.clock_step / 2)]:
-                line[self.dac_dat_in] = self.dac_data_vector[i]
+        self.write_bias_to_vector()
 
     def write_vector_file(self, file_name):
         logging.debug("Saving Vector File: %s", file_name)
@@ -171,7 +168,8 @@ class VectorFile():
             file_name = self.file_name
 
         logging.debug("Converting Biases to Binary")
-        self.convert_bias_to_raw()
+        for bias_name in self.BIAS_NAMES:
+            self.convert_bias_to_raw(bias_name)
 
         path = os.path.join(self.file_dir, file_name)
         path = os.path.expanduser(path)
@@ -212,19 +210,12 @@ class VectorFile():
             return
         self.bias[bias_name] = val
 
-        # TODO: Why is this here and also up in a separate function? Dislike
+        self.convert_bias_to_raw(bias_name)
 
-        # get position in list, as its in the same order in the vector_data
-        bias_pos = self.BIAS_NAMES.index(bias_name)
-        bin_bias = '{:0{depth}b}'.format(self.bias[bias_name], depth=self.BIAS_DEPTH)  # convert to binary
-        first_start = bias_pos * self.BIAS_DEPTH
-        second_start = (bias_pos + len(self.BIAS_NAMES)) * self.BIAS_DEPTH
-        self.dac_data_vector[first_start: first_start + self.BIAS_DEPTH] = list(bin_bias)
-        self.dac_data_vector[second_start: second_start + self.BIAS_DEPTH] = list(bin_bias)
-
-        # write all the biases. We only really need to write the one that changed but its easier
-        # to write them all.
+    def write_bias_to_vector(self):
+        # write all the biases
         for i, line_num in enumerate(self.dac_clock_refs):  # for each clock edge
             # get slice of vector data, full distance of clock edge with current edge in center
-            for line in self.vector_data[line_num - (self.clock_step / 2): line_num + (self.clock_step / 2)]:
+            for line in self.vector_data[line_num - (self.clock_step // 2): line_num + (self.clock_step // 2)]:
                 line[self.dac_dat_in] = self.dac_data_vector[i]
+

@@ -63,7 +63,8 @@ class TestVectorFile():
     def test_bias_to_raw(self, test_vector_file):
         test_vector_file.vector_file.bias["test_bias"] = 7
         test_vector_file.vector_file.bias["test_bias_2"] = 0
-        test_vector_file.vector_file.convert_bias_to_raw()
+        test_vector_file.vector_file.convert_bias_to_raw("test_bias")
+        test_vector_file.vector_file.convert_bias_to_raw("test_bias_2")
         assert test_vector_file.vector_file.dac_data_vector == [
             "1", "1", "1", "0", "0", "0", "1", "1", "1", "0", "0", "0"]
 
@@ -73,7 +74,7 @@ class TestVectorFile():
         assert test_vector_file.vector_file.dac_data_vector[0:3] == ["0", "1", "0"]
         assert test_vector_file.vector_file.dac_data_vector[6:9] == ["0", "1", "0"]
 
-    def test_set_bias_same_val(self, test_vector_file):       
+    def test_set_bias_same_val(self, test_vector_file):
         with patch("qemii.detector.VectorFile.logging") as mocked_log:
             test_vector_file.vector_file.set_bias_val("test_bias", 5)
             mocked_log.debug.assert_called_once_with("Bias Already %d, ignoring", 5)
