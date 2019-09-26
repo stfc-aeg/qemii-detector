@@ -137,12 +137,10 @@ class VectorFile():
         """
 
         for i, dac_data_name in enumerate(self.BIAS_NAMES):
-            print(dac_data_name)
             # bias values are 6 bit. each value in dac_data_vector is one bit
             data_start = i * self.BIAS_DEPTH
             data_end = (i * self.BIAS_DEPTH) + self.BIAS_DEPTH
             data = self.dac_data_vector[data_start: data_end]
-            print(data)
             # using join() + list comprehension
             # converting binary list to integer
             self.bias[dac_data_name] = int("".join(str(x) for x in data), 2)
@@ -158,7 +156,7 @@ class VectorFile():
             bias = '{:0{depth}b}'.format(self.bias[bias_name], depth=self.BIAS_DEPTH)
             logging.debug("%-16s: %s", bias_name, bias)
             first_start = i * self.BIAS_DEPTH
-            second_start = (i + 19) * self.BIAS_DEPTH
+            second_start = (i + len(self.BIAS_NAMES)) * self.BIAS_DEPTH
             self.dac_data_vector[first_start: first_start + self.BIAS_DEPTH] = list(bias)
             self.dac_data_vector[second_start: second_start + self.BIAS_DEPTH] = list(bias)
 
@@ -195,10 +193,14 @@ class VectorFile():
         # TODO: some form of verification
         self.file_name = name
         self.get_vector_information()
+        self.extract_clock_references()
+        self.convert_raw_dac_data()
 
     def reset_vector_file(self, data):
         if os.path.isfile(os.path.join(self.file_dir, self.file_name)):
             self.get_vector_information()
+            self.extract_clock_references()
+            self.convert_raw_dac_data()
 
     def get_bias_val(self, bias_name):
         return self.bias[bias_name]
@@ -210,11 +212,13 @@ class VectorFile():
             return
         self.bias[bias_name] = val
 
+        # TODO: Why is this here and also up in a separate function? Dislike
+
         # get position in list, as its in the same order in the vector_data
         bias_pos = self.BIAS_NAMES.index(bias_name)
         bin_bias = '{:0{depth}b}'.format(self.bias[bias_name], depth=self.BIAS_DEPTH)  # convert to binary
         first_start = bias_pos * self.BIAS_DEPTH
-        second_start = (bias_pos + 19) * self.BIAS_DEPTH
+        second_start = (bias_pos + len(self.BIAS_NAMES)) * self.BIAS_DEPTH
         self.dac_data_vector[first_start: first_start + self.BIAS_DEPTH] = list(bin_bias)
         self.dac_data_vector[second_start: second_start + self.BIAS_DEPTH] = list(bin_bias)
 
