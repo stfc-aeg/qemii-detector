@@ -175,7 +175,6 @@ class VectorFile():
         path = os.path.expanduser(path)
         with open(path, 'w') as f:
             logging.debug("FILE NAME: %s", f.name)
-            logging.debug("FILE MODE: %s", f.mode)
             f.write("{}\n".format(self.vector_loop_position))
             f.write("{}\n".format(self.vector_length))
             f.write("\t".join(self.vector_names))
