@@ -10,6 +10,4 @@ install:
 - pip install coveralls
 script: tox
 after_success:
-- COVERALLS_PARALLEL=true coveralls
-notifications:
-  webhooks: https://coveralls.io/webhook?repo_token=6UrsGkPwz7jb5B2dTD6Sf0VIdTr1BirPV
+- coveralls
