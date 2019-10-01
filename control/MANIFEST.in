@@ -1,2 +1,2 @@
 include versioneer.py
-include odin_workshop/_version.py
+include src/qemii/_version.py

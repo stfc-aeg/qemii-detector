@@ -1,2 +1,0 @@
-include versioneer.py
-include odin_workshop/_version.py
