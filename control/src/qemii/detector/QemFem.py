@@ -89,8 +89,8 @@ class QemFem():
         self.frame_time = 1
 
         param_tree_dict = {
-            "ip_addr": (self.get_address, None),
-            "port": (self.get_port, None),
+            "ip_addr": (self.ip_address, None),
+            "port": (self.port, None),
             "setup_camera": (None, self.setup_camera),
             "id": (self.id, None)
         }
@@ -101,25 +101,8 @@ class QemFem():
         self.param_tree = ParameterTree(param_tree_dict)
 
     def __del__(self):
-        self.x10g_rdma.close()
-
-    def get_vector_file_dir(self):
-        return self.vector_file_dir
-
-    def get_selected_vector_file(self):
-        return self.vector_file.file_name
-
-    def set_selected_vector_file(self, file):
-        self.selected_vector_file = file
-
-    def get_address(self):
-        return self.ip_address
-
-    def get_id(self):
-        return self.id
-
-    def get_port(self):
-        return self.port
+        if self.x10g_rdma is not None:
+            self.x10g_rdma.close()
 
     def setup_camera(self, put_string="None"):
         logging.debug("SETTING UP CAMERA")
@@ -134,10 +117,7 @@ class QemFem():
         self.set_idelay(0,0,0,0)
         # time.sleep(1)
         locked = self.get_idelay_lock_status() != 0
-        if locked:
-            logging.debug("IDelay Locked: %s", locked)
-        else:
-            logging.warn("IDelay Locked: %s. Something has gone wrong!", locked)
+        logging.debug("IDelay Locked: %s", locked)
         # set sub cycle shift register delay in 1 of 8 data clock steps - d1, d0, c1, c0
         # set shift register delay in 1 of 16 divide by 8 clock steps - d1, d0, c1, c0
         #
@@ -230,7 +210,7 @@ class QemFem():
         number_bytes = pixel_count_max * 2
         number_bytes_r4 = pixel_count_max % 4
         number_bytes_r8 = number_bytes % 8
-        first_packets = number_bytes / self.strm_mtu
+        first_packets = number_bytes // self.strm_mtu
         last_packet_size = number_bytes % self.strm_mtu
         lp_number_bytes_r8 = last_packet_size % 8
         lp_number_bytes_r32 = last_packet_size % 32
@@ -238,7 +218,7 @@ class QemFem():
         # calculate pixel packing settings
         if p_size >= 11 and p_size <= 13:
             pixel_extract = self.pixel_extract.index(p_size)
-            pixel_count_max = y_size / 2
+            pixel_count_max = y_size // 2
         else:
             size_status = size_status + 1
 
@@ -296,10 +276,7 @@ class QemFem():
         time.sleep(0.1)  # this sleep might have been the missing thing allowing this whole bloody thing to work?
         self.get_aligner_status()
         lock = self.get_idelay_lock_status() != 0
-        if not lock:
-            logging.warning("Idelay Not locked after Vector File Upload. Check Vector File")
-        else:
-            logging.debug("Idelay Locked after Vector File Upload")
+        logging.debug("Idelay Lock status after vector upload: %s", lock)
         return
 
     def restart_sequencer(self):
@@ -318,7 +295,7 @@ class QemFem():
 
     def set_10g_mtu(self, core_num, new_mtu):
         #mtu is set in clock cycles where each clock is 8 bytes -2
-        val_mtu = new_mtu / 8 - 2
+        val_mtu = new_mtu // 8 - 2
 
         if core_num == 'control':
             address = self.rmda_addr["udp_10G_control"]

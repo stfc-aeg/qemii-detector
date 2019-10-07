@@ -5,17 +5,17 @@ from setuptools import setup, find_packages
 import versioneer
 
 required = [
-    'tornado>4.3',
-    'pyzmq>=17.0',
-    'future',
-    'psutil>5.0',
     'odin',
+    'odin_data',
+    'odin_devices',
+    'matplotlib'
 ]
 
 dependency_links = [
     'https://github.com/odin-detector/odin-control/zipball/master#egg=odin',
+    'https://github.com/stfc-aeg/odin-devices/zipball/master#egg=odin_devices'
 ]
-
+# subdirectory=tools/python&
 setup(name='qemii',
       version=versioneer.get_version(),
       cmdclass=versioneer.get_cmdclass(),
