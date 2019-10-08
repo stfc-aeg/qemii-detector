@@ -26,7 +26,9 @@ class DetectorAdapterTestFixture(object):
         }
         with patch('qemii.detector.adapter.QemFem'), \
              patch('qemii.detector.adapter.QemDAQ'), \
-             patch('qemii.detector.adapter.QemCalibrator'):
+             patch('qemii.detector.adapter.QemCalibrator'), \
+             patch('qemii.detector.adapter.FrameProcessorAdapter'), \
+             patch('qemii.detector.adapter.FrameReceiverAdapter'):
 
             self.adapter = QemDetectorAdapter(**self.options)
             self.path = "acquisition/num_frames"
