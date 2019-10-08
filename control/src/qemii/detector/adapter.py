@@ -86,10 +86,7 @@ class QemDetectorAdapter(ApiAdapter):
             self.qem_detector.set(path, data)
             response = self.qem_detector.get(path)
             status_code = 200
-        except QemDetectorError as e:
-            response = {'error': str(e)}
-            status_code = 400
-        except (TypeError, ValueError) as e:
+        except (TypeError, ValueError, ParameterTreeError) as e:
             response = {'error': 'Failed to decode PUT request body: {}'.format(str(e))}
             status_code = 400
 
@@ -98,33 +95,11 @@ class QemDetectorAdapter(ApiAdapter):
         return ApiAdapterResponse(response, content_type=content_type,
                                   status_code=status_code)
 
-    def delete(self, path, request):
-        """Handle an HTTP DELETE request.
-
-        This method handles an HTTP DELETE request, returning a JSON response.
-
-        :param path: URI path of request
-        :param request: HTTP request object
-        :return: an ApiAdapterResponse object containing the appropriate response
-        """
-        response = 'QemDetectorAdapter: DELETE on path {}'.format(path)
-        status_code = 200
-
-        logging.debug(response)
-
-        return ApiAdapterResponse(response, status_code=status_code)
-
     def initialize(self, adapters):
         self.qem_detector.initialize(adapters)
 
     def cleanup(self):
         self.qem_detector.cleanup()
-
-
-class QemDetectorError(Exception):
-    """Simple exception class for PSCUData to wrap lower-level exceptions."""
-
-    pass
 
 
 class QemDetector():
