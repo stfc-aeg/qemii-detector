@@ -1,12 +1,17 @@
 import sys
 
 import pytest
-from qemii.detector.adapter import QemDetectorAdapter
+
 
 if sys.version_info[0] == 3:  # pragma: no cover
     from unittest.mock import Mock, MagicMock, patch
 else:                         # pragma: no cover
     from mock import Mock, MagicMock, patch
+
+sys.modules['odin_data.frame_processor_adapter'] = MagicMock()  # TODO: Hate this hacky way, find better
+sys.modules['odin_data.frame_receiver_adapter'] = MagicMock()
+
+from qemii.detector.adapter import QemDetectorAdapter
 
 
 class DetectorAdapterTestFixture(object):
