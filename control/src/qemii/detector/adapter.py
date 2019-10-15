@@ -202,20 +202,13 @@ class QemDetector():
         """Get references to required adapters and pass those references to the classes that need
             to use them
         """
-        for name, adapter in adapters.items():
-            if isinstance(adapter, ProxyAdapter):
-                logging.debug("%s is Proxy Adapter", name)
-                self.adapters["proxy"] = adapter
-            elif isinstance(adapter, FrameProcessorAdapter):
-                logging.debug("%s is FP Adapter", name)
-                self.adapters["fp"] = adapter
-            elif isinstance(adapter, FrameReceiverAdapter):
-                logging.debug("%s is FR Adapter", name)
-                self.adapters["fr"] = adapter
-            elif isinstance(adapter, FileInterfaceAdapter):
-                logging.debug("%s is File Interface Adapter", name)
-                self.adapters["file_interface"] = adapter
-
+        adapter_names = ["proxy", "fp", "fr", "file_interface"]
+        for name in adapter_names:
+            if name in adapters:
+                self.adapters[name] = adapters[name]
+            else:
+                logging.warning("%s Adapter not found in Adapter List", name)
+        
         self.calibrator.initialize(self.adapters)
         self.daq.initialize(self.adapters)
 
