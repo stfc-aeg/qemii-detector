@@ -122,7 +122,7 @@ class QemDetector():
         odin_data_dir = options.get("odin_data_dir", defaults.odin_data_dir)
         odin_data_dir = os.path.expanduser(odin_data_dir)
 
-        self.daq = QemDAQ(self.file_dir, self.file_name, odin_data_dir=odin_data_dir)
+        self.daq = QemDAQ(self.file_dir, self.file_name)
 
         self.fems = []
         for key, value in options.items():
