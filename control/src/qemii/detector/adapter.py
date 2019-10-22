@@ -213,7 +213,6 @@ class QemDetector():
         self.daq.initialize(self.adapters)
 
     def cleanup(self):
-        self.daq.cleanup()
         for fem in self.fems:
             fem.cleanup()
 

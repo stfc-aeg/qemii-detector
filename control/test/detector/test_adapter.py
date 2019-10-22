@@ -221,5 +221,4 @@ class TestDetector():
         """Test that the adatper cleanup method correctly calls other cleanup methods"""
         test_detector_adapter.adapter.cleanup()
 
-        test_detector_adapter.detector.daq.cleanup.assert_called_with()
         test_detector_adapter.detector.fems[0].cleanup.assert_called_with()
