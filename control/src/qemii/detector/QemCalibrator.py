@@ -17,7 +17,6 @@ from concurrent import futures
 
 from odin.adapters.adapter import ApiAdapterRequest
 from odin.adapters.parameter_tree import ParameterTree
-from odin.adapters.proxy import ProxyAdapter
 # from odin_data.frame_processor_adapter import FrameProcessorAdapter
 # from odin_data.frame_receiver_adapter import FrameReceiverAdapter
 
@@ -34,7 +33,7 @@ FINE_BIT_MASK = 0x3F
 # defined from previous version of software
 VOLT_OFFSET_BASE = 0.19862
 VOLT_MULTIPLY_COARSE = 0.000375
-VOLT_MULTIPLY_FINE = 0.00002
+VOLT_MULTIPLY_FINE =   0.00002
 
 
 class QemCalibrator():
@@ -45,14 +44,15 @@ class QemCalibrator():
 
     def __init__(self, coarse_calibration_value, fems, daq):
         self.coarse_calibration_value = coarse_calibration_value
-        self.qem_fems = fems
-        self.qem_daq = daq
+        self.fems = fems
+        self.daq = daq
+        self.proxy_adapter = None
 
         self.max_calibration = 4096
         self.min_calibration = 0
         self.calibration_step = 1
-
         self.calibration_value = 0
+        self.calibration_column = 33  # the column used when creating graphs
 
         self.param_tree = ParameterTree({
             "start_calibrate": (None, self.adc_calibrate),
@@ -72,37 +72,35 @@ class QemCalibrator():
         self.min_calibration = value if value > 0 else 0
 
     def set_calib_step(self, value):
-        self.calibration_step = value
+        self.calibration_step = value if value > 1 else 1
 
     def initialize(self, adapters):
         """Receives references to the other adapters needed for calibration
         """
+        try:
+            self.proxy_adapter = adapters["proxy"]
+        except KeyError as key_error:
+            logging.error("Cannot Initialize Calibrator: %s", key_error)
 
-        for _, adapter in adapters.items():
-            if isinstance(adapter, ProxyAdapter):
-                self.proxy_adapter = adapter
-                logging.debug("Proxy Adapter referenced by Calibrator")
-
-    def get_fine_bits_column(self, input, column):
+    def get_fine_bits_column(self, input_data, column):
         """ extracts the fine data bits from the given H5 file.
         @param input: the h5 file to extract the fine bits from.
         @returns fine_data: an array storing the fine bits.
         """
         fine_data = []
-        for i in input:
-            fine_data.append((i[column] & FINE_BIT_MASK))  # extract the fine bits
+        for row in input_data:
+            fine_data.append((row[column] & FINE_BIT_MASK))  # extract the fine bits
         return fine_data
 
-    def get_coarse_bits_column(self, input, column):
+    def get_coarse_bits_column(self, input_data, column):
         """ extracts the coarse bits for a single adc from a frame
         @param input: the frame to extract bits from
         @param column: The column number to extract bits from
         @returns : a list of the coarse bits.
         """
-
         coarse_data = []
-        for i in input:
-            coarse_data.append((i[column] & COARSE_BIT_MASK) >> 6)  # extract the coarse bits
+        for row in input_data:
+            coarse_data.append((row[column] & COARSE_BIT_MASK) >> 6)  # extract the coarse bits
         return coarse_data
 
     def generate_fine_voltages(self, length):
@@ -110,10 +108,8 @@ class QemCalibrator():
         @param length: the length to use to generate voltages.
         @returns : an array of voltages
         """
-        voltages = []
         offset = VOLT_OFFSET_BASE + (VOLT_MULTIPLY_COARSE * self.coarse_calibration_value)
-        for i in range(length):
-            voltages.append(float(offset + (i * VOLT_MULTIPLY_FINE)))
+        voltages = [float(offset + (i * VOLT_MULTIPLY_FINE)) for i in range(length)]
         return voltages
 
     def generate_coarse_voltages(self, length):
@@ -121,20 +117,20 @@ class QemCalibrator():
         @param length: the length to use for generating the voltages
         @returns: the list of coarse voltages
         """
-        voltages = []
-        for i in range(length):
-            voltages.append(float(VOLT_OFFSET_BASE + (i * VOLT_MULTIPLY_COARSE)))
+        voltages = [float(VOLT_OFFSET_BASE + (i * VOLT_MULTIPLY_COARSE)) for i in range(length)]
         return voltages
 
     def get_h5_file(self):
-        files = glob.glob(self.qem_daq.file_dir + "/*h5")
+        """Used to return the h5 file saved during calibration, because Odin Data
+        adds numerical indexing to the file name"""
+        files = glob.glob(self.daq.file_dir + "/*h5")
         for filename in files:
-            if self.qem_daq.file_name in filename:
+            if self.daq.file_name in filename:
                 return filename
         return "not_found"
 
     def adc_calibrate(self, calibrate_type):
-        if self.qem_daq.in_progress:
+        if self.daq.in_progress:
             logging.warning("Cannot Start Calibration: Calibrator is Busy")
             return
         calibrate_type = calibrate_type.upper().strip()
@@ -143,8 +139,8 @@ class QemCalibrator():
             return
         register_name = "AUXSAMPLE_{}".format(calibrate_type)
         logging.debug(register_name)
-        self.qem_daq.start_acquisition(self.max_calibration)
-        for fem in self.qem_fems:
+        self.daq.start_acquisition(self.max_calibration)
+        for fem in self.fems:
             fem.setup_camera()
             fem.get_aligner_status()  # TODO: is this required?
             locked = fem.get_idelay_lock_status()
@@ -163,17 +159,19 @@ class QemCalibrator():
 
     def calibration_loop(self, register):
         self.set_backplane_register(register, self.calibration_value)
-        self.qem_fems[0].frame_gate_settings(0, 0)  # set fem to take a single frame
-        self.qem_fems[0].frame_gate_trigger()
+        self.fems[0].frame_gate_settings(0, 0)  # set fem to take a single frame
+        self.fems[0].frame_gate_trigger()
         self.calibration_value += self.calibration_step
         if self.calibration_value < self.max_calibration:
             IOLoop.instance().call_later(0, self.calibration_loop, register)
         else:
             logging.debug("Calibration Complete")
 
-    @run_on_executor(executor='thread_executor')
+    # TODO: is there a better way of running this on a seperate thread?
+    # does it even need to be on a separate thread?
+    # @run_on_executor(executor='thread_executor')
     def adc_plot(self, plot_type):
-        if self.qem_daq.in_progress:
+        if self.daq.in_progress:
             logging.warning("Cannot Start Plot: Calibrator is Busy")
             return
         plot_type = plot_type.lower().strip()
@@ -191,6 +189,7 @@ class QemCalibrator():
         logging.debug("GOT %d FRAMES", len(dataset))
         if plot_type == "fine":
             voltages = self.generate_fine_voltages(data_size)
+            logging.debug("GENERATED VOLTAGES")
             # assign function used repeatedly to a variable so we don't have to keep checking
             # plot_type in the for loop below
             get_bits_column = self.get_fine_bits_column
@@ -200,7 +199,7 @@ class QemCalibrator():
         f.close()
         logging.debug("Closed file")
         for frame in dataset:
-            column = get_bits_column(list(frame), 33)
+            column = get_bits_column(list(frame), self.calibration_column)
             average = sum(column) / len(column)
             averages.append(average)
         logging.debug("Got Averages")

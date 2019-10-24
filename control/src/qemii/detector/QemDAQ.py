@@ -66,7 +66,7 @@ class QemDAQ():
         self.get_config_file("fr")
         self.is_initialized = True
 
-    def start_acquisition(self, num_frames):  # TODO: DONT RUN ODIN DATA FROM HERE YOU PONCE
+    def start_acquisition(self, num_frames):
         """Ensures the odin data FP and FR are configured, and turn on File Writing
         """
         logging.debug("Setting up Acquisition")
