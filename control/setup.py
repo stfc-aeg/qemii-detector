@@ -7,18 +7,24 @@ import sys
 PY3 = (sys.version_info[0] == 3)
 
 required = [
-    'odin',
-    # 'odin_data',  # MANUAL INSTALL REQUIRED
-    'odin_devices',
-    'opencv-python'
+    'odin'
 ]
 
-if PY3:
-    required.append("matplotlib")
+# if building on fem, we don't need matplotlib
+fem_version = False
+if '--fem-version' in sys.argv:
+    fem_version = True
+    sys.argv.remove('--fem-version')
+
+if fem_version:
+    required.append('odin_devices')
 else:
-    required.append("tornado==4.5.3")
-    required.append("matplotlib<=2.9.0")
-    required.append("numpy<=1.16.5")
+    if PY3:
+        required.append("matplotlib")
+    else:
+        required.append("tornado==4.5.3")
+        required.append("matplotlib<=2.9.0")
+        required.append("numpy<=1.16.5")
 
 dependency_links = [
     'https://github.com/odin-detector/odin-control/zipball/master#egg=odin',
