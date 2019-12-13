@@ -130,9 +130,6 @@ class FileInterfaceError(Exception):
 class FileInterface():
     """Workshop - class that extracts and stores information about system-level parameters."""
 
-    # Thread executor used for background tasks
-    executor = futures.ThreadPoolExecutor(max_workers=1)
-
     def __init__(self, directories):
         """Initialise the FileInterface object.
 
