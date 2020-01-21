@@ -4,7 +4,7 @@ Opens, Updates, and uploads vector files to the FEM.
 
 Allows a user to change DAC settings, and plot the vector file much like a logic analyser would.
 
-Adam Neaves, Detector Systems Software Group, STFC. 2019
+Ashley Neaves, Detector Systems Software Group, STFC. 2019
 """
 
 import logging
@@ -56,8 +56,9 @@ class VectorFile():
         self.clock_step = 0
 
         self.get_vector_information()
-        self.extract_clock_references()
-        self.convert_raw_dac_data()
+        #TODO: removed 10/01/19 TEMPORARILY to get it to work with the new QEMII vector files - Ashley Neaves
+        # self.extract_clock_references()
+        # self.convert_raw_dac_data()
 
         self.bias_tree = ParameterTree(
             # dict comprehension, like a one-line for loop
@@ -93,8 +94,9 @@ class VectorFile():
             self.vector_length = int(f.readline())
             self.vector_names = f.readline().split()
 
-            self.dac_clk_in = self.vector_names.index("dacCLKin")
-            self.dac_dat_in = self.vector_names.index("dacDin")
+            #TODO: removed 10/01/19 TEMPORARILY to get it to work with the new QEMII vector files - Ashley Neaves
+            # self.dac_clk_in = self.vector_names.index("dacCLKin")
+            # self.dac_dat_in = self.vector_names.index("dacDin")
 
             logging.info("Loop Position:      %s", self.vector_loop_position)
             logging.info("Vector File Length: %s", self.vector_length)
