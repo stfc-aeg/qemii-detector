@@ -129,6 +129,7 @@ class QemDetector():
             logging.debug("%s: %s", key, value)
             if "fem" in key:
                 fem_info = value.split(',')
+                # smart bit of string and dict comprehension here to get the "nested" config for the fems
                 fem_info = [(i.split('=')[0], i.split('=')[1]) for i in fem_info]
                 fem_dict = {fem_key.strip(): fem_value.strip() for (fem_key, fem_value) in fem_info}
                 logging.debug(fem_dict)
@@ -137,10 +138,10 @@ class QemDetector():
                     fem_dict.get("ip_addr", defaults.fem["ip_addr"]),
                     fem_dict.get("port", defaults.fem["port"]),
                     fem_dict.get("id", defaults.fem["id"]),
-                    fem_dict.get("server_ctrl_ip_addr", defaults.fem["server_ctrl_ip"]),
-                    fem_dict.get("camera_ctrl_ip_addr", defaults.fem["camera_ctrl_ip"]),
-                    fem_dict.get("server_data_ip_addr", defaults.fem["server_data_ip"]),
-                    fem_dict.get("camera_data_ip_addr", defaults.fem["camera_data_ip"]),
+                    fem_dict.get("server_ctrl_ip", defaults.fem["server_ctrl_ip"]),
+                    fem_dict.get("camera_ctrl_ip", defaults.fem["camera_ctrl_ip"]),
+                    fem_dict.get("server_data_ip", defaults.fem["server_data_ip"]),
+                    fem_dict.get("camera_data_ip", defaults.fem["camera_data_ip"]),
                     # vector file only required for the "main" FEM, fem_0
                     self.vector_file_dir,
                     self.vector_file
@@ -208,7 +209,7 @@ class QemDetector():
                 self.adapters[name] = adapters[name]
             else:
                 logging.warning("%s Adapter not found in Adapter List", name)
-        
+
         self.calibrator.initialize(self.adapters)
         self.daq.initialize(self.adapters)
 
@@ -221,12 +222,12 @@ class QemDetector():
             logging.warning("Cannot Start Acquistion: Already in progress")
             return
         self.daq.start_acquisition(self.acq_num)
-        for fem in self.fems:
-            fem.setup_camera()
-            fem.get_aligner_status()  # TODO: is this required?
-            locked = fem.get_idelay_lock_status()
-            if not locked:
-                fem.load_vectors_from_file()
+        # for fem in self.fems:
+            # fem.setup_camera()
+            # fem.get_aligner_status()  # TODO: is this required?
+            # locked = fem.get_idelay_lock_status()
+            # if not locked:
+            #     fem.load_vectors_from_file()
         self.fems[0].frame_gate_settings(self.acq_num - 1, self.acq_gap)
         self.fems[0].frame_gate_trigger()
 
