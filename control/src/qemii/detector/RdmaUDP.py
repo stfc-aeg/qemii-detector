@@ -62,13 +62,13 @@ class RdmaUDP(object):
 
         if self.debug:
             logging.debug('R %08X : %08X %s', address, data, comment)
-        print("Data: {}".format(data))
+        # print("Data: {}".format(data))
         return data
 
     def write(self, address, data, comment=''):
 
         if self.debug:
-            logging.debug('W %08X : %08X %s', address, data, comment)
+            logging.debug('W %15s : %08X : %08X %s', self.TgtRxUDPIPAddr, address, data, comment)
 
         #create single write command + 5 data cycle nop command for paddings
         command = struct.pack('=BBBBIQBBBBIQQQQQ', 1,0,0,2, address, data, 9,0,0,255,0, 0,0,0,0,0)
@@ -76,24 +76,29 @@ class RdmaUDP(object):
         #Send the single write command packet
         self.txsocket.sendto(command,(self.TgtRxUDPIPAddr,self.TgtRxUDPIPPrt))
 
-        # TODO: this bit doesn't seem to do anything so I commented it out - Adam 30/09/19
-        # if self.ack:
-        #     #receive acknowledge packet
-        #     response = self.rxsocket.recv(self.UDPMaxRx)
-        #     #time.sleep(10)
-        #     if len(response) == 48:
-        #         decoded = struct.unpack('=IIIIQQQQ', response)
-        #         #print decoded
+        if self.ack:
+            #receive acknowledge packet
+            response = self.rxsocket.recv(self.UDPMaxRx)
+            #time.sleep(10)
+            if len(response) == 48:
+                decoded = struct.unpack('=IIIIQQQQ', response)
 
-        # return
 
     def close(self):
         self.txsocket.close()
         self.rxsocket.close()
 
-        return
-
     def setDebug(self, enabled=True):
         self.debug = enabled
 
-        return
+    def write_noack(self, address, data, comment=''):
+
+        if self.debug:
+            logging.debug('W %015s : %08X : %08X %s', self.TgtRxUDPIPAddr, address, data, comment)
+
+        #create single write command + 5 data cycle nop command for padding
+        command = struct.pack('=BBBBIQBBBBIQQQQQ', 1,0,0,2, address, data, 9,0,0,255,0, 0,0,0,0,0)
+
+        #Send the single write command packet
+        self.txsocket.sendto(command,(self.TgtRxUDPIPAddr,self.TgtRxUDPIPPrt))
+
