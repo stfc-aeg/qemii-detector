@@ -55,7 +55,8 @@ class QemDAQ():
                 "file_name": (lambda: self.file_name, self.set_file_name),
                 "file_dir": (lambda: self.file_dir, self.set_data_dir)
             },
-            "in_progress": (lambda: self.in_progress, None)
+            "in_progress": (lambda: self.in_progress, None),
+            "configure_odin": (lambda: None, self.config_odin_data)
         })
 
     def initialize(self, adapters):
@@ -100,8 +101,8 @@ class QemDAQ():
         logging.info("FRAME START ACQ: %d END ACQ: %d",
                      self.frame_start_acquisition,
                      self.frame_end_acquisition)
-        self.in_progress = True
-        IOLoop.instance().add_callback(self.acquisition_check_loop)
+        # self.in_progress = True  # TODO: DISABLED TO ALLOW REPEAT RUNS WITHOUT ODIN DATA WORKING YET - Ashley 22/01/2020
+        # IOLoop.instance().add_callback(self.acquisition_check_loop)
         logging.debug("Starting File Writer")
         self.set_file_writing(True)
 
@@ -197,8 +198,6 @@ class QemDAQ():
     def config_odin_data(self, adapter):
         config = path.join(self.config_dir, self.config_files[adapter])
         config = path.expanduser(config)
-        if not config.startswith('/'):
-            config = '/' + config
         logging.debug(config)
         request = ApiAdapterRequest(config, content_type="application/json")
         command = "config/config_file"
