@@ -41,37 +41,44 @@ class QemFem():
             {
                 "ip": "192.168.1.1",
                 "mac": [0x3c, 0xfd, 0xfe, 0x9e, 0x9d, 0xb0],
-                "offset": 0x08000000
+                "offset": 0x08000000,
+                "port": 61661
             },
             {
                 "ip": "192.168.2.1",
                 "mac": [0x3c, 0xfd, 0xfe, 0x9e, 0x9d, 0xb1],
-                "offset": 0x0d000000
+                "offset": 0x0d000000,
+                "port": 61662
             },
             {
                 "ip": "192.168.3.1",
                 "mac": [0x3c, 0xfd, 0xfe, 0x9e, 0x9d, 0xb2],
-                "offset": 0x12000000
+                "offset": 0x12000000,
+                "port": 61663
             },
             {
                 "ip": "192.168.4.1",
                 "mac": [0x3c, 0xfd, 0xfe, 0x9e, 0x9d, 0xb3],
-                "offset": 0x17000000
+                "offset": 0x17000000,
+                "port": 61664
             },
             {
                 "ip": "192.168.5.1",
                 "mac": [0x9c, 0x69, 0xb4, 0x60, 0xb8, 0x4c],
-                "offset": 0x1c000000
+                "offset": 0x1c000000,
+                "port": 61665
             },
             {
                 "ip": "192.168.6.1",
                 "mac": [0x9c, 0x69, 0xb4, 0x60, 0xb8, 0x4d],
-                "offset": 0x21000000
+                "offset": 0x21000000,
+                "port": 61666
             },
             {
                 "ip": "192.168.7.1",
                 "mac": [0x9c, 0x69, 0xb4, 0x60, 0xb8, 0x4e],
-                "offset": 0x26000000
+                "offset": 0x26000000,
+                "port": 61667
             },
             {
                 "ip": "192.168.8.1",
@@ -153,9 +160,14 @@ class QemFem():
 
     def setup_camera(self, put_string="None"):
         logging.debug("SETTING UP CAMERA")
+        self.connect()
         self.x10g_rdma.setDebug(self.rdma_debug)
         self.change_to_register_address_mode()
+        
         self.set_ctrl_mac_address()
+        self.x10g_rdma.close()  # close to clear ack queue
+        self.connect()
+        
         self.set_fem_mac_addresses()
         self.set_stripes(6)
         self.set_ifg(128)
@@ -490,6 +502,7 @@ class QemFem():
             # for each ip, mac and offset group
             mac = mac_addr['mac']
             offset = mac_addr['offset']
+            port = mac_addr.get('port')
 
             reg_1 = mac[1] << 24 | mac[0] << 16 | index + 1   << 8 | 0x00
             reg_2 = mac[5] << 24 | mac[4] << 16 | mac[3]      << 8 | mac[2]
@@ -497,4 +510,14 @@ class QemFem():
             self.x10g_rdma.write(offset + 1, reg_1, 'SERVER MAC ADDR REG1')
             self.x10g_rdma.write(offset + 2, reg_2, 'SERVER MAC ADDR REG2')
 
-
+            # to set port addr, we need to get this reg, because its combined with the udp_length_base
+            if port:
+                udp_dest_port_base_reg = self.x10g_rdma.read(offset + 9, "READ PORT ADDR BEFORE")
+                udp_dest_port_base_reg = udp_dest_port_base_reg & 0xFFFF0000
+                port = ((port << 8) & 0xFF00) | port >> 8
+                logging.debug("Port Num: %X", port)
+                udp_dest_port_base_reg = udp_dest_port_base_reg | port
+                logging.debug("REG WITH NEW PORT: %X", udp_dest_port_base_reg)
+                self.x10g_rdma.write(offset + 9, udp_dest_port_base_reg, "WRITE NEW PORT ADDR")
+                new_reg = self.x10g_rdma.read(offset + 9, "READ PORT ADDR AFTER")
+                logging.debug("NEW PORT ADDR REG: %X", new_reg)

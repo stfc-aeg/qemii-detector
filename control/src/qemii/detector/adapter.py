@@ -162,7 +162,7 @@ class QemDetector():
 
         fem_tree = {}
         for fem in self.fems:
-            fem.connect()
+            # fem.connect()
             fem.setup_camera()
 
             fem_tree["fem_{}".format(fem.id)] = fem.param_tree
