@@ -114,7 +114,7 @@ void QemiiFrameDecoder::init(LoggerPtr& logger, OdinData::IpcMessage& config_msg
     packets_ignored_ = 0;
     packets_lost_ = 0;
 
-    for (int fem = 0; fem < Qemii::max_num_fems; fem++){
+    for (int fem = 0; fem < num_active_fems_; fem++){
           fem_packets_lost_[fem] = 0;
     }
     
@@ -310,7 +310,7 @@ void QemiiFrameDecoder::get_status(const std::string param_prefix, OdinData::Ipc
   rapidjson::Value fem_packets_lost_array(rapidjson::kArrayType);
   rapidjson::Value::AllocatorType allocator;
 
-  for (int fem = 0; fem < Qemii::max_num_fems; fem++)
+  for (int fem = 0; fem < num_active_fems_; fem++)
   {
     fem_packets_lost_array.PushBack(fem_packets_lost_[fem], allocator);
   }
@@ -336,14 +336,14 @@ void* QemiiFrameDecoder::get_packet_header_buffer(void){
 void* QemiiFrameDecoder::get_next_payload_buffer(void) const{
 
     uint8_t* next_receive_location;
-    void * print_location;
 
     if (current_packet_fem_map_.fem_idx_ != ILLEGAL_FEM_IDX)
     {
 
         next_receive_location = reinterpret_cast<uint8_t*>(current_frame_buffer_)
             + get_frame_header_size ()
-            + (Qemii::payload_size * this->get_packet_num()); //changes to payload_size
+            + (Qemii::payload_size * this->get_packet_num()) //changes to payload_size
+            + (Qemii::payload_size * current_packet_fem_map_.buf_idx_); //offset buffer based on port packet came in
     }
     else
     {
@@ -354,15 +354,15 @@ void* QemiiFrameDecoder::get_next_payload_buffer(void) const{
 }
 
 
-/*
+/**
 *   Process a UDP packet
 *   @param bytes_received: number of bytes received
 *   @param port: udp port the packet was received on
 *   @param from_addr: the address the packet was sent from
 *   @return frame_state: FrameReceiveState indicating whether the frame was complete or not
-*   This method processes the payload of the current packet, updating status information
-*   inside the decoder/current header. Makes sure the correct number of packets has been seen
-*   for a given frame.
+*   This method processes the payload of the current packet, updating status 
+*   information inside the decoder/current header. Makes sure the correct number of
+*   packets has been seen for a given frame.
 *
 */
 FrameDecoder::FrameReceiveState QemiiFrameDecoder::process_packet(
@@ -384,7 +384,7 @@ FrameDecoder::FrameReceiveState QemiiFrameDecoder::process_packet(
 
         // If we have received the expected number of packets, perform end of frame processing
         // and hand off the frame for downstream processing.
-        if (current_frame_header_->total_packets_received == Qemii::num_frame_packets)
+        if (current_frame_header_->total_packets_received == Qemii::num_frame_packets * num_active_fems_)
         {
 
             // Check that the appropriate number of SOF and EOF markers (one each per subframe) have
@@ -518,7 +518,7 @@ void QemiiFrameDecoder::initialise_frame_header(Qemii::FrameHeader* header_ptr){
     }
 
     memset(header_ptr->fem_rx_state, 0,
-      sizeof(Qemii::FemReceiveState) * Qemii::max_num_fems);
+      sizeof(Qemii::FemReceiveState) * num_active_fems_);
 
     gettime(reinterpret_cast<struct timespec*>(&(header_ptr->frame_start_time)));
 
@@ -555,7 +555,7 @@ void QemiiFrameDecoder::reset_statistics(void){
   // Reset the scratched and lost packet counters
   packets_ignored_ = 0;
   packets_lost_ = 0 ;
-  for (int fem = 0; fem < Qemii::max_num_fems; fem++)
+  for (int fem = 0; fem < num_active_fems_; fem++)
   {
     fem_packets_lost_[fem] = 0;
   }
@@ -634,7 +634,7 @@ int QemiiFrameDecoder::parse_fem_port_map(std::string& fem_port_map){
         if (buf_idx >= Qemii::max_num_fems) {
           LOG4CXX_WARN(logger_, "Decoder FEM port map configuration contains too many elements, "
                         << "truncating to maximium number of FEMs allowed ("
-                        << Qemii::max_num_fems << ")");
+                        << Qemii::total_max_streams << ")");
           break;
         }
 
