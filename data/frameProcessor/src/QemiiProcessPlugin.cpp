@@ -341,32 +341,26 @@ namespace FrameProcessor
   void QemiiProcessPlugin::reorder_whole_image(uint8_t* in, uint16_t* out, size_t num_pixels) {
     // the pixels are 12 bit, and packed across byte boundries. They need to be unpacked to take 16 bits each
     uint16_t* end_out = out + num_pixels;
-    uint8_t byte_0, byte_1, byte_2;
+    // uint8_t byte_0, byte_1, byte_2;
     // byte_0 = 0;
     // byte_1 = 0;
     // byte_2 = 0;
-    uint16_t pixel_0, pixel_1;
+    // uint16_t pixel_0, pixel_1;
     while(out < end_out)
     {
-      // if((end_out - out) % 0x1000 == 0){
-      //   LOG4CXX_DEBUG(logger_, "IN  ADDR: " << std::hex << (uint16_t*)in <<".");
-      //   LOG4CXX_DEBUG(logger_, "OUT ADDR: " << std::hex << out <<".");
-      // }
-      byte_0 = in[0];
-      byte_1 = in[1];
-      byte_2 = in[2];
+      // byte_0 = in[0];
+      // byte_1 = in[1];
+      // byte_2 = in[2];
 
-      pixel_0 = ((byte_1 & 0xF) << 8) + byte_0;
-      pixel_1 = (byte_1 >> 4) + (byte_2 << 4);
+      // pixel_0 = ((in[1] & 0xF) << 8) + in[0];
+      // pixel_1 = (in[1] >> 4) + (in[2] << 4);
       // // LOG4CXX_DEBUG(logger_, "BYTES FROM INPUT: " << std::hex)
-      out[0] = pixel_0;
-      out[1] = pixel_1;
+      out[0] = ((in[1] & 0xF) << 8) + in[0];
+      out[1] = (in[1] >> 4) + (in[2] << 4);
 
       in += 3; //every 2 pixels is 3 bytes when packed, or two 16 bit words when unpacked
       out += 2; // does this increase by 2 16 bit words or by 2 bytes? unsure
     }
-    LOG4CXX_DEBUG(logger_, "FINAL OUT ADDR: " << std::hex << out);
-    LOG4CXX_DEBUG(logger_, "FINAL IN  ADDR: " << std::hex << (uint16_t*)in);
 
     // std::memcpy(out, in, Qemii::qemii_image_pixels * 2);
   }
