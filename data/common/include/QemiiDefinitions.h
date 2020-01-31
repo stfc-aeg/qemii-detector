@@ -8,7 +8,7 @@
 
 namespace Qemii {
 
-    static const size_t packet_size = 8258;
+    static const size_t packet_size = 8216;
     static const size_t payload_size = packet_size - 8;
     static const size_t num_frame_packets = 132;
     static const size_t num_EOFS = 1;
