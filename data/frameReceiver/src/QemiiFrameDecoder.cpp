@@ -631,7 +631,7 @@ int QemiiFrameDecoder::parse_fem_port_map(std::string& fem_port_map){
     // Loop over entries, further splitting into port / fem index pairs
     for (std::vector<std::string>::iterator it = map_entries.begin(); it != map_entries.end(); ++it)
     {
-        if (buf_idx >= Qemii::max_num_fems) {
+        if (buf_idx >= Qemii::total_max_streams) {
           LOG4CXX_WARN(logger_, "Decoder FEM port map configuration contains too many elements, "
                         << "truncating to maximium number of FEMs allowed ("
                         << Qemii::total_max_streams << ")");

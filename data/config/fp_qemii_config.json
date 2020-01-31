@@ -1,90 +1,89 @@
 [
 
+  {
+    "fr_setup":
     {
-        "fr_setup": {
-          "fr_ready_cnxn": "tcp://127.0.0.1:5001",
-          "fr_release_cnxn": "tcp://127.0.0.1:5002"
-        }, 
-        "qemii": 
+      "fr_ready_cnxn": "tcp://127.0.0.1:5001",
+      "fr_release_cnxn": "tcp://127.0.0.1:5002"
+    }
+  },
+  {
+    "plugin": {
+      "load": {
+        "index": "hdf",
+        "name": "FileWriterPlugin",
+        "library": "/u/wbd45595/develop/projects/qemii/install/lib/libHdf5Plugin.so"
+      }
+    }
+  },
+  {
+    "plugin": {
+      "load": {
+          "index": "qemii",
+          "name": "QemiiProcessPlugin",
+          "library": "/u/wbd45595/develop/projects/qemii/install/lib/libQemiiProcessPlugin.so"
+      }
+    }
+  },
+  {
+    "plugin": {
+      "load": {
+        "index": "view",
+        "name": "LiveViewPlugin",
+        "library": "/u/wbd45595/develop/projects/qemii/install/lib/libLiveViewPlugin.so"
+      }
+    }
+  },
+  {
+    "plugin": {
+      "connect": {
+          "index": "qemii",
+          "connection": "frame_receiver"
+      }
+    }
+  },
+  {
+    "plugin": {
+      "connect": {
+          "index": "view",
+          "connection": "qemii"
+      }
+    }
+  },
+  {
+    "plugin": {
+      "connect": {
+          "index": "hdf",
+          "connection": "qemii"
+      }
+    }
+  },
+  {
+    "qemii": 
+    {
+      "width": 4104,
+      "height": 1056
+    }
+  },
+  {
+    "hdf": 
+    {
+      "frames": 1000,
+      "dataset": 
+      {
+        "data" : 
         {
-          "width": 288,
-          "height": 102
-        },
-        "hdf": 
-        {
-          "frames": 1000,
-          "dataset": 
-          {
-            "data" : 
-            {
-              "cmd": "create",
-              "datatype": 1,
-              "dims": [102, 288]                
-            },
-            "test" : 
-            {
-              "cmd": "create",
-              "datatype": 1,
-              "dims": [102, 288]                
-            }
-          }
-        },
-        "view": 
-        {
-          "live_view_socket_addr": "tcp://127.0.0.1:5020"
-        },
-        
-              "plugin": {
-                  "load": {
-                      "index": "hdf",
-                      "name": "FileWriterPlugin",
-                      "library": "../../../qemii/install/lib/libHdf5Plugin.so"
-                  }
-              }
-          },
-          {
-              "plugin": {
-                  "load": {
-                      "index": "qemii",
-                      "name": "QemiiProcessPlugin",
-                      "library": "../../../install/lib/libQemiiProcessPlugin.so"
-                  }
-              }
-          },
-          {
-            "plugin": {
-              "load": {
-                "index": "view",
-                "name": "LiveViewPlugin",
-                "library": "../../../install/lib/libLiveViewPlugin.so"
-              }
-            }
-          },
-          {
-              "plugin": {
-                  "connect": {
-                      "index": "qemii",
-                      "connection": "frame_receiver"
-                  }
-              }
-          },
-          {
-              "plugin": {
-                  "connect": {
-                      "index": "view",
-                      "connection": "qemii"
-                  }
-              }
-          },
-          
-          {
-              "plugin": {
-                  "connect": {
-                      "index": "hdf",
-                      "connection": "qemii"
-                  }
-              }
-          }
-         
-    
+          "cmd": "create",
+          "datatype": "uint16",
+          "dims": [1056, 4104]                
+        }
+      }
+    }
+  },
+  {
+    "view": 
+    {
+      "live_view_socket_addr": "tcp://127.0.0.1:5020"
+    }
+  }
 ]

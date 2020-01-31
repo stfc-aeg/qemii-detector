@@ -19,6 +19,7 @@ using namespace log4cxx::helpers;
 #include "FrameProcessorPlugin.h"
 #include "QemiiDefinitions.h"
 #include "ClassLoader.h"
+#include "DataBlockFrame.h"
 
 
 namespace FrameProcessor
@@ -58,9 +59,11 @@ namespace FrameProcessor
     static const std::string CONFIG_IMAGE_HEIGHT;
     static const std::string BIT_DEPTH[2];
 
-    boost::shared_ptr<Frame> process_lost_packets(boost::shared_ptr<Frame> frame);
+    void process_lost_packets(boost::shared_ptr<Frame> frame);
     void process_frame(boost::shared_ptr<Frame> frame);
     std::size_t reordered_image_size(int asic_counter_depth);
+
+    void reorder_whole_image(uint8_t* in, uint16_t* out, size_t num_pixels); 
 
     /** Pointer to logger **/
     LoggerPtr logger_;

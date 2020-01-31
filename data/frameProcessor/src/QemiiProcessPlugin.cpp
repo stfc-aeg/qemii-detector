@@ -21,9 +21,9 @@ namespace FrameProcessor
    */
   QemiiProcessPlugin::QemiiProcessPlugin() :
       asic_counter_depth_(Qemii::QEMI_BIT_DEPTH),
-      image_width_(Qemii::qemi_image_width),
-      image_height_(Qemii::qemi_image_height),
-      image_pixels_(Qemii::qemi_image_pixels),
+      image_width_(Qemii::qemii_image_width),
+      image_height_(Qemii::qemii_image_height),
+      image_pixels_(Qemii::qemii_image_pixels),
       total_packets_lost_(0)
   {
     // Setup logging for the class
@@ -144,31 +144,31 @@ namespace FrameProcessor
   /*
     Process lost packets in a given QEM Frame.
     @param frame: shared pointer to a Frame object containing the raw frame data
-    @returns checked_frame : shared pointer Frame object to the processed frame.
 
     This method analyses the given frame to see if all expected packets have been
     received. If there are packets missing within the frame, the data for these packets 
     are zeroed out as the memory may contain data from a previous frame.
   */
-  boost::shared_ptr<Frame> QemiiProcessPlugin::process_lost_packets(boost::shared_ptr<Frame> frame)
+  void QemiiProcessPlugin::process_lost_packets(boost::shared_ptr<Frame> frame)
   {
 
     boost::shared_ptr<Frame> checked_frame = frame;
-    const Qemii::FrameHeader* frame_header_ptr = static_cast<const Qemii::FrameHeader*>(frame->get_data());
+    const Qemii::FrameHeader* frame_header_ptr = static_cast<const Qemii::FrameHeader*>(frame->get_data_ptr());
+    uint16_t max_packets = (Qemii::num_frame_packets * (int)frame_header_ptr->num_active_fems);
 
     LOG4CXX_INFO(logger_, "Processing lost packets for Frame :" << frame_header_ptr->frame_number);
     LOG4CXX_INFO(logger_, "Received: " << frame_header_ptr->total_packets_received
-                        << " out of a maximum " << Qemii::num_frame_packets << " packets.");
+                        << " out of a maximum " << max_packets << " packets.");
 
 
-    if(frame_header_ptr->total_packets_received < (Qemii::num_frame_packets * (int)frame_header_ptr->num_active_fems)){
+    if(frame_header_ptr->total_packets_received < max_packets){
 
 
       size_t num_bytes = frame->get_data_size();
-      void* image = (void*)malloc(num_bytes);
-      memcpy(image, frame->get_data(), num_bytes);
+      // void* image = (void*)malloc(num_bytes);
+      // memcpy(image, frame->get_data(), num_bytes);
 
-      int num_packets_lost = (Qemii::num_frame_packets * (int)frame_header_ptr->num_active_fems) - frame_header_ptr->total_packets_received;
+      int num_packets_lost = max_packets - frame_header_ptr->total_packets_received;
       
       total_packets_lost_ += num_packets_lost;
       LOG4CXX_INFO(logger_, "Lost a total of : " << total_packets_lost_ << "since starting.");
@@ -177,8 +177,7 @@ namespace FrameProcessor
       // go over each active fem
       for(int fem = 0; fem < frame_header_ptr->num_active_fems; fem++){
         
-        char* packet_ptr = (char*)image;
-        packet_ptr += sizeof(Qemii::FrameHeader); // bypass the header in the buffer
+        char* packet_ptr = static_cast<char *>(frame->get_data_ptr())+ sizeof(Qemii::FrameHeader); // bypass the header in the buffer
 
         //loops over the number of packets
         for(int packet = 0; packet < Qemii::num_frame_packets; packet++){
@@ -197,14 +196,8 @@ namespace FrameProcessor
        
       }
 
-      checked_frame = boost::shared_ptr<Frame>(new Frame("Checked"));
-      checked_frame->copy_data(image, num_bytes);
-      free(image);
-
     }
 
-    // return the frame with the 
-    return checked_frame;
   }
 
   /*
@@ -222,43 +215,89 @@ namespace FrameProcessor
     LOG4CXX_INFO(logger_, "Reordering frame.");
     LOG4CXX_INFO(logger_, "Frame size: " << frame->get_data_size());
 
-    frame = this->process_lost_packets(frame);
 
-    const Qemii::FrameHeader* frame_header_ptr = static_cast<const Qemii::FrameHeader*>(frame->get_data());
+    const Qemii::FrameHeader* hdr_ptr = static_cast<const Qemii::FrameHeader*>(frame->get_data_ptr());
 
-    LOG4CXX_INFO(logger_, "Processing Image for Frame Number: " << frame_header_ptr->frame_number);
-    LOG4CXX_INFO(logger_, "Frame State: " << frame_header_ptr->frame_state);
-    LOG4CXX_INFO(logger_, "Total Packets Received: " << frame_header_ptr->total_packets_received);
-    LOG4CXX_INFO(logger_, "SOF's Seen : " << (int)frame_header_ptr->total_sof_marker_count);
-    LOG4CXX_INFO(logger_, "EOF's Seen : " << (int)frame_header_ptr->total_eof_marker_count);
+    LOG4CXX_INFO(logger_, "Processing Image for Frame Number: " << hdr_ptr->frame_number);
+    LOG4CXX_INFO(logger_, "Frame State: " << hdr_ptr->frame_state);
+    LOG4CXX_INFO(logger_, "Total Packets Received: " << hdr_ptr->total_packets_received);
+    LOG4CXX_INFO(logger_, "SOF's Seen : " << (int)hdr_ptr->total_sof_marker_count);
+    LOG4CXX_INFO(logger_, "EOF's Seen : " << (int)hdr_ptr->total_eof_marker_count);
                             
     // get the size of the final image
 
     // allocate memory for that image size
 
     size_t image_size = reordered_image_size(Qemii::QEMI_BIT_DEPTH);
-    std::cout << image_size << std::endl;
+    LOG4CXX_TRACE(logger_, "Output Image Size:   " << image_size);
+    LOG4CXX_TRACE(logger_, "Output Image Height: " << image_height_);
+    LOG4CXX_TRACE(logger_, "Output Image Width:  " << image_width_);
 
-    const void* frame_data = static_cast<const void*>(static_cast<const char*>(frame->get_data() + sizeof(Qemii::FrameHeader)));
 
-    //only one fem.. so this is all of the data.
+     // Loop over the active FEM list to determine the maximum active FEM index
+
+    unsigned int max_active_fem_idx = 0;
+    {
+      std::stringstream msg;
+      msg << "Number of active FEMs: " << static_cast<int>(hdr_ptr->num_active_fems) << " ids:";
+      for (uint8_t idx = 0; idx < hdr_ptr->num_active_fems; idx++)
+      {
+        if (hdr_ptr->active_fem_idx[idx] > max_active_fem_idx)
+        {
+          max_active_fem_idx = hdr_ptr->active_fem_idx[idx];
+        }
+        msg << " " << static_cast<int>(hdr_ptr->active_fem_idx[idx]);
+      }
+      LOG4CXX_TRACE(logger_, msg.str());
+    }
+
+    this->process_lost_packets(frame);
 
   // Setup the frame dimensions and do a reshape.
     dimensions_t dimensions(2);
     dimensions[0] = image_height_;
     dimensions[1] = image_width_;
 
-    boost::shared_ptr<Frame> the_frame = boost::shared_ptr<Frame>(new Frame("data"));
+    FrameMetaData frame_meta;
 
-    the_frame->set_frame_number(frame_header_ptr->frame_number);
-    the_frame->set_dimensions(dimensions);
-    the_frame->set_data_type(1);
-    the_frame->copy_data(frame_data, image_size);
-  
+    frame_meta.set_dataset_name("data");
 
+    // Set frame metadata info
+    frame_meta.set_compression_type(no_compression);
+    frame_meta.set_frame_number(hdr_ptr->frame_number);
+    frame_meta.set_dimensions(dimensions);
+    frame_meta.set_data_type(raw_16bit);
+
+    LOG4CXX_DEBUG(logger_, "CREATING DATABLOCKFRAME");
+    boost::shared_ptr<Frame> data_frame = boost::shared_ptr<Frame>(new DataBlockFrame(frame_meta, image_size));
+
+    //get pointers to input and output data ready for reordering
+    const void* in_data_ptr = static_cast<const void*>(
+        static_cast<const char*>(frame->get_data_ptr()) + sizeof(Qemii::FrameHeader)
+    );
+    const void* out_data_ptr = static_cast<const void*>(
+        static_cast<const char*>(data_frame->get_data_ptr())
+    );
+    void* output_ptr = static_cast<void*>(static_cast<char*>(const_cast<void *>(out_data_ptr)));
+    void* input_ptr = static_cast<void *>(static_cast<char*>(const_cast<void *>(in_data_ptr)));
+
+    // for (uint8_t idx = 0; idx < hdr_ptr->num_active_fems; idx++)
+    // {
+    //   uint8_t fem_idx = hdr_ptr->active_fem_idx[idx];
+
+    //   //calc pointer into input image based on fem index
+    //   void* input_ptr = data_ptr + (idx * Qemii::payload_size);
+    //   std::size_t output_offset = fem_idx * Qemii::payload_size;
+
+
+    // }
+
+    this->reorder_whole_image(static_cast<uint8_t *>(input_ptr), static_cast<uint16_t *>(output_ptr), image_height_*image_width_);
+
+    LOG4CXX_DEBUG(logger_, "DATA FRAME METADATA: DATASET NAME" << frame_meta.get_dataset_name());
     LOG4CXX_TRACE(logger_, "Pushing data frame.");
-    this->push(the_frame);
-    frame_data = NULL;
+    this->push(data_frame);
+    // frame_data = NULL;
 
   }
 
@@ -291,6 +330,45 @@ namespace FrameProcessor
     return image_size;
 
   }
+  
+  /**
+   * Reorder and unpack the pixel data
+   * 
+   * @param in - Pointer to incoming image data
+   * @param out - Pointer to allocated memory for reordered image
+   * @param num_pixels - the number of pixels. The reordered image will be this * 2 bytes large
+   */
+  void QemiiProcessPlugin::reorder_whole_image(uint8_t* in, uint16_t* out, size_t num_pixels) {
+    // the pixels are 12 bit, and packed across byte boundries. They need to be unpacked to take 16 bits each
+    uint16_t* end_out = out + num_pixels;
+    uint8_t byte_0, byte_1, byte_2;
+    // byte_0 = 0;
+    // byte_1 = 0;
+    // byte_2 = 0;
+    uint16_t pixel_0, pixel_1;
+    while(out < end_out)
+    {
+      // if((end_out - out) % 0x1000 == 0){
+      //   LOG4CXX_DEBUG(logger_, "IN  ADDR: " << std::hex << (uint16_t*)in <<".");
+      //   LOG4CXX_DEBUG(logger_, "OUT ADDR: " << std::hex << out <<".");
+      // }
+      byte_0 = in[0];
+      byte_1 = in[1];
+      byte_2 = in[2];
 
+      pixel_0 = ((byte_1 & 0xF) << 8) + byte_0;
+      pixel_1 = (byte_1 >> 4) + (byte_2 << 4);
+      // // LOG4CXX_DEBUG(logger_, "BYTES FROM INPUT: " << std::hex)
+      out[0] = pixel_0;
+      out[1] = pixel_1;
+
+      in += 3; //every 2 pixels is 3 bytes when packed, or two 16 bit words when unpacked
+      out += 2; // does this increase by 2 16 bit words or by 2 bytes? unsure
+    }
+    LOG4CXX_DEBUG(logger_, "FINAL OUT ADDR: " << std::hex << out);
+    LOG4CXX_DEBUG(logger_, "FINAL IN  ADDR: " << std::hex << (uint16_t*)in);
+
+    // std::memcpy(out, in, Qemii::qemii_image_pixels * 2);
+  }
 } /* namespace FrameProcessor */
 
