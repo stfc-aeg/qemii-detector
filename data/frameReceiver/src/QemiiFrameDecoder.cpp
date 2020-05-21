@@ -185,7 +185,6 @@ void QemiiFrameDecoder::process_packet_header (size_t bytes_received, int port,
     // Resolve the FEM index from the port the packet arrived on
     if (fem_port_map_.count(port)) {
         current_packet_fem_map_ =  fem_port_map_[port];
-
     }
     else{
         current_packet_fem_map_ = QemiiDecoderFemMapEntry(ILLEGAL_FEM_IDX, ILLEGAL_FEM_IDX);
@@ -532,7 +531,6 @@ void QemiiFrameDecoder::initialise_frame_header(Qemii::FrameHeader* header_ptr){
 */
 unsigned int QemiiFrameDecoder::elapsed_ms(struct timespec& start, struct timespec& end)
 {
-
   double start_ns = ((double) start.tv_sec * 1000000000) + start.tv_nsec;
   double end_ns = ((double) end.tv_sec * 1000000000) + end.tv_nsec;
 
@@ -575,9 +573,7 @@ size_t QemiiFrameDecoder::get_next_payload_size(void) const
 *   @return boolean flag: true if EOF present.
 */
 bool QemiiFrameDecoder::get_eof_marker(void) const{
-
-    uint32_t packet_number = reinterpret_cast<Qemii::PacketHeader*>(
-        current_packet_header_.get())->packet_number;
+    uint32_t packet_number = reinterpret_cast<Qemii::PacketHeader*>(current_packet_header_.get())->packet_number;
     return ((packet_number & Qemii::EOF_marker) != 0);
 }
 
@@ -586,9 +582,7 @@ bool QemiiFrameDecoder::get_eof_marker(void) const{
 *   @return boolean flag: true if SOF present.
 */
 bool QemiiFrameDecoder::get_sof_marker(void) const {
-
-    uint32_t packet_number = reinterpret_cast<Qemii::PacketHeader*>(
-        current_packet_header_.get())->packet_number;
+    uint32_t packet_number = reinterpret_cast<Qemii::PacketHeader*>(current_packet_header_.get())->packet_number;
     return ((packet_number & Qemii::SOF_marker) != 0); 
 }
 
@@ -597,9 +591,7 @@ bool QemiiFrameDecoder::get_sof_marker(void) const {
 *   @return : the packet number
 */
 uint32_t QemiiFrameDecoder::get_packet_num(void) const{
-
-  return reinterpret_cast<Qemii::PacketHeader*>(
-      current_packet_header_.get())->packet_number & Qemii::packet_num_mask;
+  return reinterpret_cast<Qemii::PacketHeader*>(current_packet_header_.get())->packet_number & Qemii::packet_num_mask;
 }
 
 /*
