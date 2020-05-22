@@ -26,7 +26,10 @@ namespace FrameProcessor
 {
 
   /** Processing of Qemii Frame objects.
-   *
+   * 21/05/2020:AOD - updated to include constant for frame_number and updated class to include
+   * reply
+   * 
+   * ******************************************************************************
    * The QemiiProcessPlugin class is currently responsible for receiving a raw data
    * Frame object and reordering the data into valid Qemii frames according to the selected
    * bit depth.
@@ -43,7 +46,8 @@ namespace FrameProcessor
     std::string get_version_short();
     std::string get_version_long();
 
-    void configure(OdinData::IpcMessage& config);
+    void configure(OdinData::IpcMessage& config, OdinData::IpcMessage& reply);
+    void requestConfiguration(OdinData::IpcMessage& reply);
     void status(OdinData::IpcMessage& status);
     bool reset_statistics(void);
 
@@ -58,6 +62,8 @@ namespace FrameProcessor
     /** Configuration constant for image height **/
     static const std::string CONFIG_IMAGE_HEIGHT;
     static const std::string BIT_DEPTH[2];
+    /** Configuration constant for setting frame number **/
+    static const std::string CONFIG_FRAME_NUMBER;
 
     void process_lost_packets(boost::shared_ptr<Frame> frame);
     void process_frame(boost::shared_ptr<Frame> frame);
@@ -77,6 +83,9 @@ namespace FrameProcessor
     int image_pixels_;
     /** Packet loss counter **/
     int total_packets_lost_;
+    /** Overwrite UDP frame number until firmware resets
+    * it before each acquisition **/
+    uint32_t frame_number_;
   };
 
   /**

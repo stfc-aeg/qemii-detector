@@ -4,7 +4,7 @@
  *  Created on: 6 Jun 2016
  *      Author: gnx91527
  * 
- * Updated 21/05/2020 - made changes to include frame_number to get round DAQ not resetting frame
+ * Updated 21/05/2020 AOD: made changes to include frame_number to get round DAQ not resetting frame
  * number in header on new aquisition.  Also, configure function did not have the 2nd parameter
  * defined so base class was being called which does nothing
  * 
@@ -121,6 +121,23 @@ namespace FrameProcessor
     }
     image_pixels_ = image_width_ * image_height_;
 
+  }
+  /*
+    Gets the configuration status of the frame processor. 
+    @param requestConfiguration: reference to an ipc status message to hold the parameters in.
+    This method populates the provided configuration message with the counter depth, image
+    width, image height, frame number and the number of total packets lost for the current DAQ.
+    **TODO** The included configuration parameters needs review but inculde all during development
+  */
+  void QemiiProcessPlugin::requestConfiguration(OdinData::IpcMessage& reply)
+  {
+  	// Return the configuration of the reorder plugin
+  	std::string base_str = get_name() + "/";
+    reply.set_param(base_str + QemiiProcessPlugin::CONFIG_ASIC_COUNTER_DEPTH, asic_counter_depth_);
+    reply.set_param(base_str + QemiiProcessPlugin::CONFIG_DROPPED_PACKETS, total_packets_lost_);
+    reply.set_param(base_str + QemiiProcessPlugin::CONFIG_IMAGE_WIDTH, image_width_);
+    reply.set_param(base_str + QemiiProcessPlugin::CONFIG_IMAGE_HEIGHT, image_height_);
+    reply.set_param(base_str + QemiiProcessPlugin::CONFIG_FRAME_NUMBER, frame_number_);
   }
 
   /*
@@ -276,13 +293,7 @@ namespace FrameProcessor
 
     // Set frame metadata info
     frame_meta.set_compression_type(no_compression);
-    
-    frame_meta.set_frame_number(frame_number_); //
-    
-    //TODO: Interrim fix: (until F/W amended)
-    //	Changes header's frame number.
-    //hdr_ptr->frame_number = hdr_ptr->frame_number = frame_number_;
-
+    frame_meta.set_frame_number(frame_number_); //changed to frame_number_ rather than header
     frame_meta.set_dimensions(dimensions);
     frame_meta.set_data_type(raw_16bit);
 
@@ -316,8 +327,7 @@ namespace FrameProcessor
     LOG4CXX_TRACE(logger_, "Pushing data frame.");
     this->push(data_frame);
     // frame_data = NULL;
-    // Manually update frame_number (until fixed in firmware)
-    frame_number_++;
+    frame_number_++; // Manually update frame_number (until fixed in firmware)
 
   }
 
@@ -361,21 +371,16 @@ namespace FrameProcessor
   void QemiiProcessPlugin::reorder_whole_image(uint8_t* in, uint16_t* out, size_t num_pixels) {
     // the pixels are 12 bit, and packed across byte boundries. They need to be unpacked to take 16 bits each
     uint16_t* end_out = out + num_pixels;
-    int i = 0;
     // uint8_t byte_0, byte_1, byte_2;
     // byte_0 = 0;
     // byte_1 = 0;
     // byte_2 = 0;
-    uint16_t pixel_0, pixel_1;
-    
-    LOG4CXX_DEBUG(logger_, "START PROCESSING")
+    //uint16_t pixel_0, pixel_1;
     while(out < end_out)
     {
       // byte_0 = in[0];
       // byte_1 = in[1];
       // byte_2 = in[2];
-
-      // std::cout << byte_0 << byte_1 << byte_2;
 
       // pixel_0 = ((in[1] & 0xF) << 8) + in[0];
       // pixel_1 = (in[1] >> 4) + (in[2] << 4);
@@ -385,9 +390,7 @@ namespace FrameProcessor
 
       in += 3; //every 2 pixels is 3 bytes when packed, or two 16 bit words when unpacked
       out += 2; // does this increase by 2 16 bit words or by 2 bytes? unsure
-      i++;
     }
-    LOG4CXX_DEBUG(logger_, "number of loops = " << i)
 
     // std::memcpy(out, in, Qemii::qemii_image_pixels * 2);
   }
