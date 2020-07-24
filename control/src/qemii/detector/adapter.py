@@ -221,14 +221,18 @@ class QemDetector():
         if self.daq.in_progress:
             logging.warning("Cannot Start Acquistion: Already in progress")
             return
+        
+        #removed for now
         self.daq.start_acquisition(self.acq_num)
+        # above only
+
         # for fem in self.fems:
             # fem.setup_camera()
             # fem.get_aligner_status()  # TODO: is this required?
             # locked = fem.get_idelay_lock_status()
             # if not locked:
             #     fem.load_vectors_from_file()
-        self.fems[0].frame_gate_settings(self.acq_num - 1, self.acq_gap)
+        self.fems[0].frame_gate_settings(self.acq_num, self.acq_gap)
         self.fems[0].frame_gate_trigger()
 
 
@@ -237,11 +241,13 @@ class QemDetectorDefaults():
     def __init__(self):
         self.save_dir = "/scratch/qem/QEM_AN_CALIBRATION/"
         self.save_file = "default_file"
-        self.vector_file_dir = "/aeg_sw/work/projects/qem/python/03052018/"
-        self.vector_file = "QEM_D4_198_ADC_10_icbias30_ifbias24.txt"
+        #self.vector_file_dir = "/aeg_sw/work/projects/qem/python/03052018/"
+        self.vector_file_dir = "/projectsMED/TEM-QEM/QEM Camera Hardware/Test/QEM2_Vectors/BenVectors"
+        #self.vector_file = "QEM_D4_198_ADC_10_icbias30_ifbias24.txt"
+        self.vector_file = "QEM2_images_200708_MFCDS_OFF_PLL_ON_REPEATING_OFF_QEM1TYPE_ON_ADCMODE_FCONVEN_IFBIASN33.txt"
         self.odin_data_dir = "~/develop/projects/qemii/install/"
-        self.acq_num = 4096
-        self.acq_gap = 1
+        self.acq_num = 1
+        self.acq_gap = 0
         self.fem = {
             "ip_addr": "192.168.0.122",
             "port": "8070",
