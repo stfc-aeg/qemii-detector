@@ -92,11 +92,18 @@ class VectorFile():
 
             self.vector_loop_position = int(f.readline())
             self.vector_length = int(f.readline())
-            self.vector_names = f.readline().split()
+            self.vector_names = f.readline().split(",")
+            logging.info("NAMES:      %s", self.vector_names)
 
             #TODO: removed 10/01/19 TEMPORARILY to get it to work with the new QEMII vector files - Ashley Neaves
             # self.dac_clk_in = self.vector_names.index("dacCLKin")
             # self.dac_dat_in = self.vector_names.index("dacDin")
+
+            # BB_SR_DIN,BB_SR_CLKIN
+            # the naming convections for the clock and data for setting the iC and iF bias has changed
+            # BB_SR_DIN,BB_SR_CLKIN
+            self.dac_clk_in = self.vector_names.index("BB_SR_CLKIN")
+            self.dac_dat_in = self.vector_names.index("BB_SR_DIN")
 
             logging.info("Loop Position:      %s", self.vector_loop_position)
             logging.info("Vector File Length: %s", self.vector_length)

@@ -322,6 +322,8 @@ namespace FrameProcessor
     // }
 
     this->reorder_whole_image(static_cast<uint8_t *>(input_ptr), static_cast<uint16_t *>(output_ptr), image_height_*image_width_);
+    //this->reorder_whole_image(static_cast<uint8_t *>(input_ptr), static_cast<uint16_t *>(output_ptr), 4000000);
+    
 
     LOG4CXX_DEBUG(logger_, "DATA FRAME METADATA: DATASET NAME" << frame_meta.get_dataset_name());
     LOG4CXX_TRACE(logger_, "Pushing data frame.");
@@ -370,29 +372,38 @@ namespace FrameProcessor
    */
   void QemiiProcessPlugin::reorder_whole_image(uint8_t* in, uint16_t* out, size_t num_pixels) {
     // the pixels are 12 bit, and packed across byte boundries. They need to be unpacked to take 16 bits each
-    uint16_t* end_out = out + num_pixels;
-    // uint8_t byte_0, byte_1, byte_2;
-    // byte_0 = 0;
-    // byte_1 = 0;
-    // byte_2 = 0;
-    //uint16_t pixel_0, pixel_1;
-    while(out < end_out)
+
+    // uint16_t* end_out = out + num_pixels;
+    // while(out < end_out)
+    // {
+    //   out[0]=((in[1] & 0xF) << 8) + in[0];
+    //   out[1]=(in[1]>>4) + (in[2]<<4);
+    //   in += 3;
+    //   out += 2;
+    // }
+    
+    int i = 0; // variable for inner loop
+    int loop = 0; // variable for middle loop
+    int loop2 = 0; // variable for outermost loop
+    int ix2xwidth = 0; // i x 2 x width variable
+    int ip2i = 0; // i + 2 * i variable
+    int inshiftup = ((Qemii::data_height_per_10g * 3) / 2); // avoid x (float) 1.5 by *3 / 2 instead so this once at start
+
+    for(loop2 = 0; loop2 < Qemii::max_data_per_fem; loop2++) // loop dependant on the amount of data looking at
     {
-      // byte_0 = in[0];
-      // byte_1 = in[1];
-      // byte_2 = in[2];
-
-      // pixel_0 = ((in[1] & 0xF) << 8) + in[0];
-      // pixel_1 = (in[1] >> 4) + (in[2] << 4);
-      // LOG4CXX_DEBUG(logger_, "BYTES FROM INPUT: " << std::hex)
-      out[0] = ((in[1] & 0xF) << 8) + in[0];
-      out[1] = (in[1] >> 4) + (in[2] << 4);
-
-      in += 3; //every 2 pixels is 3 bytes when packed, or two 16 bit words when unpacked
-      out += 2; // does this increase by 2 16 bit words or by 2 bytes? unsure
+      for(loop=0; loop < Qemii::qemii_image_width; loop++)
+      {
+        for(i = 0; i < (Qemii::data_height_per_10g / 2); i++){ // 1/2 of 176 because extrtacting 2 pixel values each time
+          ix2xwidth = i * 2 * Qemii::qemii_image_width; // calculate this once as used many times below
+          ip2i = i + (i*2); // calculate this one as used several times in equations below
+          out[ix2xwidth] = ((in[1 + ip2i] & 0xF) << 8) + in[0 + ip2i];
+          out[Qemii::qemii_image_width + (ix2xwidth)] = (in[1 + ip2i] >> 4) + (in[2 + ip2i] << 4);
+        }
+        in += inshiftup;
+        out += 1;
+      }
+      out += Qemii::qemii_image_width * (Qemii::data_height_per_10g - 1); // 175 alignes next group
     }
-
-    // std::memcpy(out, in, Qemii::qemii_image_pixels * 2);
   }
 } /* namespace FrameProcessor */
 

@@ -27,9 +27,26 @@
   },
   {
     "plugin": {
+      "load": {
+        "index": "view",
+        "name": "LiveViewPlugin",
+        "library": "/u/aod62/QEMII/install/lib/libLiveViewPlugin.so"
+      }
+    }
+  },
+  {
+    "plugin": {
       "connect": {
           "index": "qemii",
           "connection": "frame_receiver"
+      }
+    }
+  },
+  {
+    "plugin": {
+      "connect": {
+          "index": "view",
+          "connection": "qemii"
       }
     }
   },
@@ -62,6 +79,12 @@
           "dims": [1056, 4104]                
         }
       }
+    }
+  },
+  {
+    "view": 
+    {
+      "live_view_socket_addr": "tcp://127.0.0.1:5020"
     }
   }
 ]

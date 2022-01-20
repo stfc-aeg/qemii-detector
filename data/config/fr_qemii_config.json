@@ -4,7 +4,7 @@
       "decoder_path": "./lib",
       "rx_address": "0.0.0.0",
       "rx_ports": "61661, 61662, 61663, 61664, 61665, 61666",
-      "max_buffer_mem": 840000000,
+      "max_buffer_mem": 32000000000,
       "decoder_config": {
         "enable_packet_logging": false,
         "frame_timeout_ms": 1000,
@@ -14,3 +14,4 @@
     }
 
 ]
+

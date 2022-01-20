@@ -73,7 +73,7 @@ function set_fp_file(){
         type: "PUT",
         url: '/api/' + api_version + '/fp/config/config_file',
         contentType: "application/json",
-        data: JSON.stringify("/u/wbd45595/develop/projects/qemii/qemii-detector/data/config/" + file)
+        data: JSON.stringify("/u/aod62/QEMII/qemii-detector/data/config/" + file)
     });
     
 }
@@ -84,7 +84,7 @@ function set_fr_file(){
         type: "PUT",
         url: '/api/' + api_version + '/fr/config/config_file',
         contentType: "application/json",
-        data: JSON.stringify("/u/wbd45595/develop/projects/qemii/qemii-detector/data/config/" + file)
+        data: JSON.stringify("/u/aod62/QEMII/qemii-detector/data/config/" + file)
     });
 }
 

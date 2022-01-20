@@ -34,8 +34,8 @@ class QemFem():
     def __init__(self, ip_address, port, fem_id,
                  server_ctrl_ip_addr, camera_ctrl_ip_addr,
                  server_data_ip_addr, camera_data_ip_addr,
-                 vector_file_dir="/aeg_sw/work/projects/qem/python/03052018/",
-                 vector_file="QEM_D4_198_ADC_10_icbias30_ifbias24.txt"):
+                 vector_file_dir="/projectsMED/TEM-QEM/QEM Camera Hardware/Test/QEM2_Vectors/BenVectors/",
+                 vector_file="QEM2_images_200904_MFCDS_OFF_PLL_ON_REPEATING_OFF_QEM1TYPE_ON_IMAGEMODE_NoFCONVEN.txt"):
 
         self.mac_addresses = [  # TODO: THIS IS VERY TEMPORARY DONT LEAVE THIS HERE IT SHOULD BE IN THE CONFIG FILE
             {

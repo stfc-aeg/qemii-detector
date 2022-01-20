@@ -14,7 +14,7 @@ function getNumberFrames(){
 }
 
 function setNumberFrames(){
-    num_frames = $('#txt-num-frames').val();
+    num_frames = $('#txt-num-frames').val() + 1;
     $.ajax({
         type: "PUT",
         url: acq_path,
@@ -53,7 +53,6 @@ function setAcquisitionConfig(){
         data: JSON.stringify({"frame_gap": frame_gap,
                               "num_frames": num_frames})
     });
-
     file_name = $('#txt-file-name').val();
     console.log("Setting File name to " + file_name)
     $.ajax({

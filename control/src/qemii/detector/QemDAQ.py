@@ -24,6 +24,7 @@ class QemDAQ():
         # self.fp_config_file = ""
         self.file_dir = save_file_dir
         self.file_name = save_file_name
+        #self.num_frames = 0
 
         self.in_progress = False
         self.is_initialized = False  # Flag for initialization
@@ -70,6 +71,7 @@ class QemDAQ():
     def start_acquisition(self, num_frames):
         """Ensures the odin data FP and FR are configured, and turn on File Writing
         """
+        #self.num_frames = int(num_frames)
         logging.debug("Setting up Acquisition")
         fr_status = self.get_od_status("fr")
         fp_status = self.get_od_status("fp")
@@ -101,10 +103,12 @@ class QemDAQ():
         logging.info("FRAME START ACQ: %d END ACQ: %d",
                      self.frame_start_acquisition,
                      self.frame_end_acquisition)
+
         # self.in_progress = True  # TODO: DISABLED TO ALLOW REPEAT RUNS WITHOUT ODIN DATA WORKING YET - Ashley 22/01/2020
         # IOLoop.instance().add_callback(self.acquisition_check_loop)
-        logging.debug("Starting File Writer")
-        self.set_file_writing(True)
+        logging.debug("Starting File Writer!!!")
+        self.set_file_writing(True, num_frames)
+        #self.set_file_writing(True, num_frames)
 
     def acquisition_check_loop(self):
         hdf_status = self.get_od_status('fp').get('hdf', {"frames_written": 0})
@@ -180,20 +184,46 @@ class QemDAQ():
     def set_file_name(self, name):
         self.file_name = name
 
-    def set_file_writing(self, writing):
+    def set_file_writing(self, writing, num_frames=0):
         self.file_writing = writing
-        # send command to Odin Data
-        command = "config/hdf/file/path"
+        
+        # dissable writing
         request = ApiAdapterRequest(self.file_dir, content_type="application/json")
+        # command = "config/hdf/write"
+        # request.body = "{}".format(False)
+        # self.adapters["fp"].put(command, request)
+
+        #set the path
+        command = "config/hdf/file/path"
+        request.body = self.file_dir
         self.adapters["fp"].put(command, request)
 
+        #set the filename
         command = "config/hdf/file/name"
         request.body = self.file_name
         self.adapters["fp"].put(command, request)
 
+        #debugging messages
+        # logging.info("\n\n\nnum_frames = %d\n\n\\n" %num_frames)
+        # logging.info("\n\n\nSETTTING FRAMES to correct value\n\n\n")
+        
+        #write the number of frames
+        command = "config/hdf/frames"
+        request.body = "{}".format(num_frames)
+        self.adapters["fp"].put(command, request)
+
+        #reset the frame number
+        logging.info("SETTTING FRAME NUMBER to 0\n")
+        command = "config/qemii/frame_number"
+        request.body = "{}".format("0") #this sets the frame number back to 0 ready for the next run
+        self.adapters["fp"].put(command, request)
+
+        #re-enable writing
         command = "config/hdf/write"
         request.body = "{}".format(writing)
         self.adapters["fp"].put(command, request)
+
+        # logging.info(request.body)
 
     def config_odin_data(self, adapter):
         config = path.join(self.config_dir, self.config_files[adapter])

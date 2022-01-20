@@ -32,7 +32,8 @@ QemiiFrameDecoder::QemiiFrameDecoder():
 
     //initialise buffers for the current header, dropped frames and ignored packets
     current_packet_header_.reset(new uint8_t[sizeof(Qemii::PacketHeader)]);
-    dropped_frame_buffer_.reset(new uint8_t[Qemii::max_frame_size()]);
+    //dropped_frame_buffer_.reset(new uint8_t[Qemii::max_frame_size()]);
+    dropped_frame_buffer_.reset(new uint8_t[Qemii::const_max_frame_size]);
     ignored_packet_buffer_.reset(new uint8_t[Qemii::packet_size]);
 
     //initialise the logger
@@ -340,9 +341,10 @@ void* QemiiFrameDecoder::get_next_payload_buffer(void) const{
     {
 
         next_receive_location = reinterpret_cast<uint8_t*>(current_frame_buffer_)
-            + get_frame_header_size ()
-            + (Qemii::payload_size * this->get_packet_num()) //changes to payload_size
-            + (Qemii::payload_size * current_packet_fem_map_.buf_idx_); //offset buffer based on port packet came in
+            + get_frame_header_size () // skip the header size
+            + (Qemii::payload_size * Qemii::num_frame_packets * current_packet_fem_map_.buf_idx_) //offset in buffer based on the number of packets in a frame
+            + (Qemii::payload_size * this->get_packet_num()); //offset based on the packet number in the frame received
+            
     }
     else
     {
@@ -612,6 +614,8 @@ int QemiiFrameDecoder::parse_fem_port_map(std::string& fem_port_map){
     // Define entry and port:idx delimiters
     const std::string entry_delimiter(",");
     const std::string elem_delimiter(":");
+    //LOG4CXX_WARN(logger_, "port map here = " << fem_port_map);
+
 
     // Vector to hold entries split from map
     std::vector<std::string> map_entries;
